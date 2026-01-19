@@ -11,3 +11,6 @@ screen-brightness-control
 # pyaudio
 setuptools
 requests
+sentence-transformers
+google-generativeai
+Pillow

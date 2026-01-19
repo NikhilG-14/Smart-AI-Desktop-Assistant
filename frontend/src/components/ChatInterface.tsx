@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
+
+import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 import { Send, Mic, MicOff, Power, Activity, Cpu, Wifi, Video, VideoOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
@@ -52,37 +54,53 @@ export function ChatInterface() {
         { id: '0', type: 'bot', text: "Core Systems Initialized. Waiting for input.", timestamp: new Date() }
     ]);
     const [inputValue, setInputValue] = useState('');
-    const [isListening, setIsListening] = useState(false);
+    // const [isListening, setIsListening] = useState(false); // Replaced by library state
+
+
+    const [isThinking, setIsThinking] = useState(false);
     const [cameraActive, setCameraActive] = useState(true);
     const videoRef = useRef<HTMLVideoElement>(null);
     const recognitionRef = useRef<any>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const shouldListenRef = useRef(false); // Track if we should restart listening
 
-    // --- Speech Recognition ---
+    // --- Speech Recognition (Library) ---
+    const {
+        transcript,
+        listening,
+        resetTranscript,
+        browserSupportsSpeechRecognition
+    } = useSpeechRecognition();
+
+    // Alias library state to isListening for compatibility
+    const isListening = listening;
+
+    // Sync library state to local state if we want to keep using isListening var name, 
+    // OR just replace all isListening with listening. 
+    // Let's rely on 'listening' from library directly in UI to avoid sync issues.
+
+    // Auto-Send Logic
     useEffect(() => {
-        const { webkitSpeechRecognition, SpeechRecognition } = window as unknown as IWindow;
-        const Recognition = SpeechRecognition || webkitSpeechRecognition;
-
-        if (Recognition) {
-            const recognition = new Recognition();
-            recognition.continuous = false;
-            recognition.lang = 'en-US';
-            recognition.interimResults = false;
-
-            recognition.onstart = () => setIsListening(true);
-            recognition.onend = () => setIsListening(false);
-            recognition.onresult = (event: any) => {
-                const transcript = event.results[0][0].transcript;
-                setInputValue(transcript);
-                handleSendMessage(transcript);
-            };
-            recognitionRef.current = recognition;
+        console.log("Transcript Updated:", transcript);
+        if (transcript) {
+            setInputValue(transcript);
         }
-    }, []);
+    }, [transcript]);
+
+
 
     const toggleListening = () => {
-        if (recognitionRef.current) {
-            isListening ? recognitionRef.current.stop() : recognitionRef.current.start();
+        if (!browserSupportsSpeechRecognition) {
+            alert("Voice input not supported in this browser. Please use Chrome or Safari.");
+            return;
+        }
+
+        if (listening) {
+            shouldListenRef.current = false;
+            SpeechRecognition.stopListening();
+        } else {
+            shouldListenRef.current = true;
+            SpeechRecognition.startListening({ continuous: false, language: 'en-US' });
         }
     };
 
@@ -105,12 +123,13 @@ export function ChatInterface() {
     const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     useEffect(scrollToBottom, [messages]);
 
-    const handleSendMessage = async (text: string = inputValue) => {
+    const sendMessage = async (text: string) => {
         if (!text.trim()) return;
 
         // Optimistic UI
         setMessages(prev => [...prev, { id: Date.now().toString(), type: 'user', text, timestamp: new Date() }]);
         setInputValue('');
+        setIsThinking(true);
 
         try {
             const res = await fetch('http://127.0.0.1:8000/chat', {
@@ -122,8 +141,43 @@ export function ChatInterface() {
             setMessages(prev => [...prev, { id: Date.now().toString(), type: 'bot', text: data.response, timestamp: new Date() }]);
         } catch (e) {
             setMessages(prev => [...prev, { id: Date.now().toString(), type: 'bot', text: "ERR: Backend Offline", timestamp: new Date() }]);
+        } finally {
+            setIsThinking(false);
         }
     };
+
+    const handleInputSend = () => sendMessage(inputValue);
+
+    // When listening stops, if there is a transcript, send it.
+    // When listening stops, if there is a transcript, send it.
+    // When listening stops, if there is a transcript, send it.
+    useEffect(() => {
+        if (!listening) {
+            const cleanTranscript = transcript.trim().toLowerCase();
+
+            // WAKE WORD LOGIC: Only send if it starts with "jarvis"
+            if (cleanTranscript.startsWith('jarvis')) {
+                // Strip "Jarvis" from the beginning and send the rest
+                const command = transcript.slice(6).trim(); // 6 is length of "Jarvis"
+                if (command) {
+                    sendMessage(command);
+                }
+                resetTranscript();
+            } else if (cleanTranscript) {
+                // If it doesn't start with Jarvis, we ignore it (maybe log it)
+                console.log("Ignored (No Wake Word):", transcript);
+                resetTranscript(); // Clear it so we don't process it later
+            }
+
+            // Auto-Restart if it should be listening (with slight delay)
+            if (shouldListenRef.current) {
+                const timer = setTimeout(() => {
+                    SpeechRecognition.startListening({ continuous: false, language: 'en-US' });
+                }, 200);
+                return () => clearTimeout(timer);
+            }
+        }
+    }, [listening, transcript, resetTranscript]);
 
     return (
         <div className="flex h-screen w-screen bg-black text-white font-sans overflow-hidden p-2 gap-2">
@@ -192,19 +246,25 @@ export function ChatInterface() {
                 {/* The Animated Sphere */}
                 <div className="flex-1 flex items-center justify-center relative">
                     {/* Outer Rings */}
-                    <div className="absolute w-[500px] h-[500px] border border-cyan-500/10 rounded-full animate-[spin_10s_linear_infinite]" />
-                    <div className="absolute w-[400px] h-[400px] border border-cyan-400/20 rounded-full animate-[spin_15s_linear_infinite_reverse] border-t-transparent border-l-transparent" />
+                    <div className={`absolute w-[500px] h-[500px] border rounded-full animate-[spin_10s_linear_infinite] transition-colors duration-1000 ${isThinking ? 'border-purple-500/30' : 'border-cyan-500/10'}`} />
+                    <div className={`absolute w-[400px] h-[400px] border rounded-full animate-[spin_15s_linear_infinite_reverse] border-t-transparent border-l-transparent transition-colors duration-1000 ${isThinking ? 'border-purple-400/40' : 'border-cyan-400/20'}`} />
 
                     {/* The Core */}
                     <motion.div
-                        animate={{ scale: [1, 1.05, 1] }}
-                        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                        className="w-64 h-64 rounded-full bg-gradient-to-b from-cyan-500/20 to-blue-600/20 backdrop-blur-xl border border-cyan-400/30 shadow-[0_0_50px_rgba(34,211,238,0.2)] flex items-center justify-center relative"
+                        animate={{ scale: isThinking ? [1, 1.2, 1] : [1, 1.05, 1] }}
+                        transition={{ duration: isThinking ? 1 : 4, repeat: Infinity, ease: "easeInOut" }}
+                        className={`w-64 h-64 rounded-full bg-gradient-to-b backdrop-blur-xl border shadow-[0_0_50px_currentColor] flex items-center justify-center relative transition-colors duration-1000
+                            ${isThinking
+                                ? 'from-purple-500/20 to-pink-600/20 border-purple-400/30 text-purple-400'
+                                : 'from-cyan-500/20 to-blue-600/20 border-cyan-400/30 text-cyan-400'
+                            }`}
                     >
-                        <div className="w-48 h-48 rounded-full bg-black/80 flex items-center justify-center border border-cyan-500/30">
+                        <div className={`w-48 h-48 rounded-full bg-black/80 flex items-center justify-center border transition-colors duration-1000 ${isThinking ? 'border-purple-500/30' : 'border-cyan-500/30'}`}>
                             <div className="text-center space-y-1">
-                                <Activity className="w-8 h-8 text-cyan-400 mx-auto animate-bounce" />
-                                <div className="text-[10px] text-cyan-600 font-mono animate-pulse">LISTENING</div>
+                                <Activity className={`w-8 h-8 mx-auto animate-bounce ${isThinking ? 'text-purple-400' : 'text-cyan-400'}`} />
+                                <div className={`text-[10px] font-mono animate-pulse ${isThinking ? 'text-purple-600' : 'text-cyan-600'}`}>
+                                    {isThinking ? 'PROCESSING...' : 'LISTENING'}
+                                </div>
                             </div>
                         </div>
                     </motion.div>
@@ -215,20 +275,20 @@ export function ChatInterface() {
                     <div className="flex items-center gap-3 bg-black/60 border border-gray-700/50 rounded-full p-2 px-4 shadow-xl backdrop-blur-md">
                         <button
                             onClick={toggleListening}
-                            className={`p-2 rounded-full transition-all ${isListening ? 'bg-red-500/20 text-red-400 animate-pulse' : 'hover:bg-cyan-500/10 text-cyan-400'}`}
+                            className={`p-2 rounded-full transition-all ${listening ? 'bg-red-500/20 text-red-400 animate-pulse' : 'hover:bg-cyan-500/10 text-cyan-400'}`}
                         >
-                            {isListening ? <MicOff size={20} /> : <Mic size={20} />}
+                            {listening ? <Mic size={20} /> : <MicOff size={20} />}
                         </button>
                         <input
                             type="text"
                             value={inputValue}
                             onChange={(e) => setInputValue(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                            onKeyDown={(e) => e.key === 'Enter' && handleInputSend()}
                             placeholder="Initiate Command Protocol..."
                             className="flex-1 bg-transparent border-none outline-none text-cyan-100 placeholder-cyan-900/50 font-mono text-sm h-full"
                         />
                         <button
-                            onClick={() => handleSendMessage()}
+                            onClick={handleInputSend}
                             className="text-cyan-400 hover:text-cyan-200 transition-colors"
                         >
                             <Send size={18} />
@@ -249,8 +309,8 @@ export function ChatInterface() {
                     {messages.map((msg) => (
                         <div key={msg.id} className={`flex flex-col ${msg.type === 'user' ? 'items-end' : 'items-start'}`}>
                             <div className={`max-w-[90%] p-3 rounded-lg border ${msg.type === 'user'
-                                    ? 'bg-cyan-950/30 border-cyan-800/50 text-cyan-100'
-                                    : 'bg-gray-800/50 border-gray-700 text-gray-300'
+                                ? 'bg-cyan-950/30 border-cyan-800/50 text-cyan-100'
+                                : 'bg-gray-800/50 border-gray-700 text-gray-300'
                                 }`}>
                                 <p className="leading-relaxed">{msg.text}</p>
                             </div>

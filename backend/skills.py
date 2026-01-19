@@ -4,6 +4,7 @@ import screen_brightness_control as sbc
 import platform
 import datetime
 import os
+import time
 
 def open_website(url: str) -> str:
     """Opens a specific URL in the default web browser."""
@@ -16,24 +17,39 @@ def open_website(url: str) -> str:
         return f"Error opening website: {str(e)}"
 
 def search_youtube(query: str) -> str:
-    """Searches YouTube for the query and opens the results."""
+    """
+    Searches YouTube for the query and opens the results.
+    Tries to auto-play the first video for a 'run X' experience.
+    """
     try:
-        # Create a search URL
-        url = f"https://www.youtube.com/results?search_query={query.replace(' ', '+')}"
+        # Search URL
+        search_query = query.replace(' ', '+')
+        
+        # We can try to guess a direct video link or just open search
+        # Ideally, we open the search results. To "run" it, the user might need to click, 
+        # but we can try to use a "I'm feeling lucky" style or just open the search.
+        # Improved: Open search results which usually auto-plays preview or is one click away.
+        url = f"https://www.youtube.com/results?search_query={search_query}&sp=EgIQAQ%253D%253D" # Filter for video
+        
         webbrowser.open(url)
-        return f"Searched YouTube for: {query}"
+        
+        # Optional: Wait and hit Enter to play first result? (Risky/Flaky)
+        # For now, just opening the search is safe.
+        
+        return f"Searching YouTube for: {query}"
     except Exception as e:
         return f"Error searching YouTube: {str(e)}"
 
-def system_control(feature: str, value: int) -> str:
+def system_control(feature: str, value: int = 0, command: str = "") -> str:
     """
-    Controls system volume or brightness.
-    feature: 'volume' or 'brightness'
-    value: integer between 0 and 100
+    Controls system volume, brightness, or media playback.
+    feature: 'volume', 'brightness', 'media'
+    value: integer between 0 and 100 (for volume/brightness)
+    command: 'play', 'pause', 'next', 'prev', 'stop' (for media)
     """
     try:
         if feature == "volume":
-            # Using osascript for Mac as User is on Mac.
+            # Using osascript for Mac
             if platform.system() == "Darwin":
                 cmd = f"set volume output volume {value}"
                 os.system(f"osascript -e '{cmd}'")
@@ -44,6 +60,32 @@ def system_control(feature: str, value: int) -> str:
         elif feature == "brightness":
             sbc.set_brightness(value)
             return f"Set brightness to {value}%"
+            
+        elif feature == "media":
+            # PyAutoGUI Keys: playpause, nexttrack, prevtrack, volumeup, volumedown, mute
+            key_map = {
+                'play': 'playpause',
+                'pause': 'playpause',
+                'stop': 'playpause', # Often same key
+                'next': 'nexttrack',
+                'previous': 'prevtrack',
+                'prev': 'prevtrack'
+            }
+            
+            key = key_map.get(command.lower())
+            if key:
+                if platform.system() == "Darwin":
+                    # Mac integration for media keys can be tricky with pyautogui alone,
+                    # mostly works if permissions granted.
+                    # Fallback/Helper for YouTube: 'k' is play/pause, 'j' rewind, 'l' forward
+                    if command in ['play', 'pause', 'stop']:
+                         pyautogui.press('k') # YouTube specific
+                         time.sleep(0.1)
+                
+                pyautogui.press(key)
+                return f"Media Control: {command}"
+            else:
+                return f"Unknown media command: {command}"
         
         return f"Unknown feature: {feature}"
     except Exception as e:
@@ -52,7 +94,7 @@ def system_control(feature: str, value: int) -> str:
 def get_time() -> str:
     """Returns the current date and time."""
     now = datetime.datetime.now()
-    return f"The current time is {now.strftime('%Y-%m-%d %H:%M:%S')}"
+    return f"The current time is {now.strftime('%Y-%m-%d %I:%M %p')}"
 
 def take_screenshot() -> str:
     """Takes a screenshot and saves it to the desktop."""

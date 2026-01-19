@@ -20,6 +20,16 @@
   background-color: rgba(34, 211, 238, 0.4);
 }
 
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  /* Prevent double scrollbars */
+}
+
 body {
   background-color: #000;
   color: #fff;
