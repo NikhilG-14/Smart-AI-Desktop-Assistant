@@ -6,7 +6,7 @@ from backend.skills import open_website, search_youtube, system_control, get_tim
 # Load environment variables
 load_dotenv()
 
-api_key = "AIzaSyABnBfBnVxIMs-AZ6hLeWq78drmGVZ8IPY"
+api_key = os.getenv("GEMINI_API_KEY")
 if not api_key:
     print("Warning: GEMINI_API_KEY not found in .env file.")
 

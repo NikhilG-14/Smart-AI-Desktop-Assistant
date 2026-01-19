@@ -1,3 +1,4 @@
+
 # Smart AI Assistant (Minor Project)
 
 A powerful desktop assistant application combining a React/Electron frontend with a Python-based intelligent backend. This project features natural language processing (NLP) for intent classification and entity extraction, allowing users to perform system actions through chat commands.
@@ -149,3 +150,4 @@ minor/
 │
 └── README.md           # This file
 ```
+
