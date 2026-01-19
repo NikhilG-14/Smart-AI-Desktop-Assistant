@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+python-dotenv
+scikit-learn
+pandas
+nltk
+SpeechRecognition
+pyttsx3
+pyautogui
+screen-brightness-control
+# pyaudio
+setuptools
+requests

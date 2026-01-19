@@ -1,0 +1,96 @@
+command,intent
+open chrome,open_app
+launch spotify,open_app
+can you open visual studio code,open_app
+please start calculator,open_app
+i need to use excel,open_app
+open safari,open_app
+search for python tutorials on youtube,youtube_search
+play lo-fi hip hop on youtube,youtube_search
+find youtube videos about machine learning,youtube_search
+youtube search funny cat videos,youtube_search
+look up react course on youtube,youtube_search
+increase volume to 50,volume_control
+set volume to 80 percent,volume_control
+decrease volume,volume_control
+make it louder,volume_control
+mute the sound,volume_control
+take a screenshot,screenshot
+capture the screen,screenshot
+screenshot this,screenshot
+save a picture of my desktop,screenshot
+what time is it,time
+tell me the current time,time
+what's the time now,time
+do you know the time,time
+shutdown the computer,shutdown
+turn off system,shutdown
+restart the laptop,restart
+reboot system,restart
+check battery status,battery
+how much battery is left,battery
+percentage of battery,battery
+open google,open_app
+search youtube for gaming videos,youtube_search
+set brightness to 100,brightness_control
+dim the screen to 20,brightness_control
+increase brightness,brightness_control
+open whatsapp,open_app
+open discord,open_app
+play music on youtube,youtube_search
+time please,time
+snapshot screen,screenshot
+sleep the computer,sleep
+go to sleep mode,sleep
+open terminal,open_app
+launch finder,open_app
+open settings,open_app
+volume up,volume_control
+volume down,volume_control
+volume max,volume_control
+search web for news,open_app
+open browser,open_app
+can you search youtube for me,youtube_search
+show me latest tech news on youtube,youtube_search
+grab screenshot,screenshot
+what is the date today,time
+day and time,time
+turn off my pc,shutdown
+reboot machine,restart
+pause the youtube video,media_pause
+pause youtube,media_pause
+stop youtube,media_pause
+pause video on youtube,media_pause
+resume youtube,media_play
+play video on youtube,youtube_search
+resume video,media_play
+start video,media_play
+continue video,media_play
+battery level,battery
+power status,battery
+
+play music on spotify,spotify_play
+play some rock music on spotify,spotify_play
+open spotify and play drake,spotify_play
+can you play taylor swift on spotify,spotify_play
+spotify play top hits,spotify_play
+play daft punk on spotify,spotify_play
+search spotify for jazz,spotify_play
+increase brightness to 80,brightness_control
+set screen brightness to 50,brightness_control
+dim screen to 10,brightness_control
+max brightness,brightness_control
+turn up the brightness,brightness_control
+play video on youtube,youtube_search
+search for unboxing video on youtube,youtube_search
+open youtube and play relaxing rain sounds,youtube_search
+find tutorial for react on youtube,youtube_search
+play believer on spotify,spotify_play
+play shape of you on spotify,spotify_play
+open calculator,open_app
+open calendar,open_app
+open notes,open_app
+open maps,open_app
+open photos,open_app
+increase volume by 20,volume_control
+decrease volume by 10,volume_control
