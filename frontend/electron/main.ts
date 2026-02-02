@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, shell, globalShortcut, systemPreferences } from 'electron';
 import path from 'path';
 
 // The Main Process
@@ -25,7 +25,7 @@ function createWindow() {
   // In dev: load from local Vite server
   // In prod: load from index.html
   const isDev = process.env.NODE_ENV === 'development';
-  
+
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173');
     mainWindow.webContents.openDevTools();
@@ -42,9 +42,28 @@ function createWindow() {
     shell.openExternal(url);
     return { action: 'deny' };
   });
+
+  // Global Shortcut for Background Activation
+  globalShortcut.register('CommandOrControl+Shift+Space', () => {
+    if (mainWindow) {
+      mainWindow.show();
+      mainWindow.focus();
+      mainWindow.webContents.send('activate-mic');
+    }
+  });
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(async () => {
+  if (process.platform === 'darwin') {
+    const status = await systemPreferences.askForMediaAccess('microphone');
+    console.log('Microphone access:', status);
+  }
+  createWindow();
+});
+
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll();
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

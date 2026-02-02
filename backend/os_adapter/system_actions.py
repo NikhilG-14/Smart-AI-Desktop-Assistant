@@ -176,25 +176,40 @@ class SystemActions:
             response = "I'm not sure how to help with that yet."
             
         elif intent == "media_pause":
-            # YouTube uses 'k' or 'space'. Global media is 'playpause'.
-            # Send 'k' first (best for YouTube), then 'playpause' for background apps
-            pyautogui.press('k') 
-            pyautogui.press('playpause')
+            if platform.system() == "Darwin":
+                # Mac: Key Code 100 is Play/Pause (worked in debug script)
+                os.system("osascript -e 'tell application \"System Events\" to key code 100'")
+                # Still try 'k' for YouTube if focused (redundancy)
+                pyautogui.press('k')
+            else:
+                pyautogui.press('playpause')
+            
             response = "Paused playback."
         
         elif intent == "media_play":
-            pyautogui.press('k')
-            pyautogui.press('playpause')
+            if platform.system() == "Darwin":
+                os.system("osascript -e 'tell application \"System Events\" to key code 100'")
+                pyautogui.press('k')
+            else:
+                pyautogui.press('playpause')
+                
             response = "Resumed playback."
             
         elif intent == "media_next":
-            pyautogui.press('nexttrack')
-             # Shift+N for YouTube next?
+            if platform.system() == "Darwin":
+                # Key Code 101 is Next
+                os.system("osascript -e 'tell application \"System Events\" to key code 101'")
+            else:
+                pyautogui.press('nexttrack')
             response = "Skipped to next track."
 
         elif intent == "media_prev":
-            pyautogui.press('prevtrack')
-            response = "Playing previous track."
+             if platform.system() == "Darwin":
+                # Key Code 102 is Previous
+                os.system("osascript -e 'tell application \"System Events\" to key code 102'")
+             else:
+                pyautogui.press('prevtrack')
+             response = "Playing previous track."
             
         elif intent == "system_lock":
             if platform.system() == "Darwin":

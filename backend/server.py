@@ -51,21 +51,25 @@ async def chat_endpoint(request: ChatRequest):
         print(f"Vision Trigger Detected for: {user_text}")
         return {"response": analyze_screen(user_text)}
 
-    # --- 1. Fast Intent Classification (SVM) ---
-    # We still try SVM first for speed on simple commands like "volume up"
-    intent = classifier.predict(user_text)
-    print(f"Predicted Intent (SVM): {intent}")
+    # --- 1. Vision / Screen Analysis Check ---
+    vision_triggers = ["read screen", "look at screen", "what is on screen", "explain this screen", "scan screen"]
+    if any(trigger in user_text.lower() for trigger in vision_triggers):
+        print(f"Vision Trigger Detected for: {user_text}")
+        return {"response": analyze_screen(user_text)}
+
+    # --- 2. Brain (LLM) First Strategy ---
+    # The user requested Strict JSON handling via LLM.
+    # We prioritize the Gemini Brain for all commands to ensure accuracy and rule adherence.
+    print(f"Routing '{user_text}' to Gemini Brain...")
     
-    # --- 2. Smart Routing ---
-    # distinct "unknown" class in SVM or simple heuristics for complexity
-    is_complex = len(user_text.split()) > 6 or " and " in user_text.lower() 
-    
-    # If the SVM is confident it's a simple command, we might still execute it. 
-    # But if it's "unknown" OR "complex", we prefer the Brain (LLM).
-    if intent == "unknown" or is_complex:
-        print("Routing to Gemini Brain (Complex/Unknown)...")
+    try:
+        # process_command now handles the JSON parsing and local execution internally
         llm_response = process_command(user_text)
         return {"response": llm_response}
+    except Exception as e:
+        print(f"Gemini Error: {e}")
+        # Fallback to SVM if needed (or just error out if Brain is critical)
+        return {"response": f"Brain Error: {str(e)}"}
     
     # --- 3. Execute Local Action (Fast Path) ---
     # Extract Entities

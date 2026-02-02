@@ -14,3 +14,6 @@ requests
 sentence-transformers
 google-generativeai
 Pillow
+matplotlib
+seaborn
+ipykernel

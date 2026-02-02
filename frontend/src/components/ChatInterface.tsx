@@ -7,10 +7,15 @@ import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
 // --- Types ---
+// --- Types ---
 interface IWindow extends Window {
     webkitSpeechRecognition: any;
     SpeechRecognition: any;
+    electron?: {
+        receive: (channel: string, func: (...args: any[]) => void) => void;
+    };
 }
+declare let window: IWindow;
 
 interface Message {
     id: string;
@@ -67,31 +72,25 @@ export function ChatInterface() {
     // --- Speech Recognition (Library) ---
     const {
         transcript,
+        finalTranscript,
         listening,
         resetTranscript,
         browserSupportsSpeechRecognition
     } = useSpeechRecognition();
 
-    // Alias library state to isListening for compatibility
+    // Alias library state
     const isListening = listening;
 
-    // Sync library state to local state if we want to keep using isListening var name, 
-    // OR just replace all isListening with listening. 
-    // Let's rely on 'listening' from library directly in UI to avoid sync issues.
-
-    // Auto-Send Logic
+    // Auto-Send Logic (Text Input sync)
     useEffect(() => {
-        console.log("Transcript Updated:", transcript);
         if (transcript) {
             setInputValue(transcript);
         }
     }, [transcript]);
 
-
-
     const toggleListening = () => {
         if (!browserSupportsSpeechRecognition) {
-            alert("Voice input not supported in this browser. Please use Chrome or Safari.");
+            alert("Voice input not supported in this browser.");
             return;
         }
 
@@ -100,24 +99,11 @@ export function ChatInterface() {
             SpeechRecognition.stopListening();
         } else {
             shouldListenRef.current = true;
-            SpeechRecognition.startListening({ continuous: false, language: 'en-US' });
+            SpeechRecognition.startListening({ continuous: true, language: 'en-US' });
         }
     };
 
-    // --- Camera Access ---
-    useEffect(() => {
-        if (cameraActive && navigator.mediaDevices) {
-            navigator.mediaDevices.getUserMedia({ video: true })
-                .then(stream => {
-                    if (videoRef.current) videoRef.current.srcObject = stream;
-                })
-                .catch(err => console.error("Camera access denied:", err));
-        } else if (videoRef.current) {
-            const stream = videoRef.current.srcObject as MediaStream;
-            stream?.getTracks().forEach(track => track.stop());
-            videoRef.current.srcObject = null;
-        }
-    }, [cameraActive]);
+    // ... Camera Effect ...
 
     // --- Messaging ---
     const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -148,36 +134,63 @@ export function ChatInterface() {
 
     const handleInputSend = () => sendMessage(inputValue);
 
-    // When listening stops, if there is a transcript, send it.
-    // When listening stops, if there is a transcript, send it.
-    // When listening stops, if there is a transcript, send it.
+    // (Types moved to top of file)
+
+    // ... (inside component) ...
+
+    // --- ROBUST VOICE LOGIC (V4 - Continuous Events) ---
+
+    // 1. Instant Keyword Spotting using interim results
     useEffect(() => {
-        if (!listening) {
-            const cleanTranscript = transcript.trim().toLowerCase();
+        if (!listening || !transcript) return;
 
-            // WAKE WORD LOGIC: Only send if it starts with "jarvis"
-            if (cleanTranscript.startsWith('jarvis')) {
-                // Strip "Jarvis" from the beginning and send the rest
-                const command = transcript.slice(6).trim(); // 6 is length of "Jarvis"
-                if (command) {
-                    sendMessage(command);
-                }
-                resetTranscript();
-            } else if (cleanTranscript) {
-                // If it doesn't start with Jarvis, we ignore it (maybe log it)
-                console.log("Ignored (No Wake Word):", transcript);
-                resetTranscript(); // Clear it so we don't process it later
-            }
+        const currentText = transcript.toLowerCase();
+        const keywords = ['pause', 'unpause', 'resume', 'stop', 'play', 'next song', 'previous song'];
+        const foundKeyword = keywords.find(k => currentText.includes(k));
 
-            // Auto-Restart if it should be listening (with slight delay)
-            if (shouldListenRef.current) {
-                const timer = setTimeout(() => {
-                    SpeechRecognition.startListening({ continuous: false, language: 'en-US' });
-                }, 200);
-                return () => clearTimeout(timer);
-            }
+        if (foundKeyword) {
+            console.log("Instant Trigger:", foundKeyword);
+            sendMessage(foundKeyword);
+            resetTranscript();
         }
-    }, [listening, transcript, resetTranscript]);
+    }, [transcript, listening]);
+
+    // 2. Final Result Processing (Natural Pause)
+    useEffect(() => {
+        if (finalTranscript !== '') {
+            const cleanCommand = finalTranscript.trim().toLowerCase();
+            console.log("Final Result:", cleanCommand);
+            sendMessage(cleanCommand);
+            resetTranscript();
+        }
+    }, [finalTranscript]);
+
+    // 3. Auto-Restart Logic (Keep Alive)
+    useEffect(() => {
+        if (!listening && shouldListenRef.current) {
+            console.log("Connection lost. Restarting...");
+            const restartTimer = setTimeout(() => {
+                SpeechRecognition.startListening({ continuous: true, language: 'en-US' });
+            }, 100);
+            return () => clearTimeout(restartTimer);
+        }
+    }, [listening]);
+
+    // Global Shortcut Listener (Background Trigger)
+    useEffect(() => {
+        // Safe check for Electron API
+        if (window.electron) {
+            window.electron.receive("activate-mic", () => {
+                console.log("Global shortcut: Activating...");
+                if (!shouldListenRef.current) {
+                    shouldListenRef.current = true;
+                    if (!listening) {
+                        SpeechRecognition.startListening({ continuous: false, language: 'en-US' });
+                    }
+                }
+            });
+        }
+    }, []); // Run once on mount
 
     return (
         <div className="flex h-screen w-screen bg-black text-white font-sans overflow-hidden p-2 gap-2">
@@ -263,7 +276,7 @@ export function ChatInterface() {
                             <div className="text-center space-y-1">
                                 <Activity className={`w-8 h-8 mx-auto animate-bounce ${isThinking ? 'text-purple-400' : 'text-cyan-400'}`} />
                                 <div className={`text-[10px] font-mono animate-pulse ${isThinking ? 'text-purple-600' : 'text-cyan-600'}`}>
-                                    {isThinking ? 'PROCESSING...' : 'LISTENING'}
+                                    {isThinking ? 'PROCESSING...' : (listening ? 'LISTENING (ACTIVE)' : 'STANDBY')}
                                 </div>
                             </div>
                         </div>

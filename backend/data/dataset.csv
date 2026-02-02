@@ -53,6 +53,95 @@ launch discord,open_app
 open slack,open_app
 open zoom,open_app
 open teams,open_app
+open microsoft word,open_app
+launch word,open_app
+start word processor,open_app
+open excel,open_app
+launch excel,open_app
+start spreadsheet,open_app
+open powerpoint,open_app
+launch powerpoint,open_app
+open presentation,open_app
+open trello,open_app
+launch trello,open_app
+open notion,open_app
+launch notion,open_app
+open figma,open_app
+launch figma,open_app
+open photoshop,open_app
+launch photoshop,open_app
+open adobe illustrator,open_app
+open premiere pro,open_app
+open camera,open_app
+launch webcam,open_app
+open sublime text,open_app
+open atom,open_app
+open pycharm,open_app
+open intellij,open_app
+open android studio,open_app
+open xcode,open_app
+open vlc,open_app
+launch media player,open_app
+open quicktime,open_app
+open obs,open_app
+open steam,open_app
+launch steam,open_app
+open epic games,open_app
+open battle net,open_app
+open telegram,open_app
+open signal,open_app
+open skype,open_app
+open messenger,open_app
+open facebook,open_app
+open instagram,open_app
+open twitter,open_app
+open linkedin,open_app
+open reddit,open_app
+open gmail,open_app
+check emails,open_app
+open outlook,open_app
+open thunderbird,open_app
+open mail,open_app
+open contacts,open_app
+open address book,open_app
+open reminders,open_app
+show my tasks,open_app
+open weather,open_app
+check weather forecast,open_app
+open news,open_app
+read news,open_app
+open stocks,open_app
+check stock market,open_app
+open voice memos,open_app
+record audio,open_app
+open clock,open_app
+set alarm,open_app
+open timer,open_app
+open stopwatch,open_app
+open dictionary,open_app
+define word,open_app
+open translator,open_app
+open app store,open_app
+open play store,open_app
+install app,open_app
+open control panel,open_app
+open task manager,open_app
+monitor system,open_app
+open activity monitor,open_app
+open disk utility,open_app
+open keychain,open_app
+open font book,open_app
+open preview,open_app
+open textedit,open_app
+open stickies,open_app
+open chess,open_app
+play chess,open_app
+open garageband,open_app
+open imovie,open_app
+open keynote,open_app
+open numbers,open_app
+open pages,open_app
+launch pages,open_app
 search for python tutorials on youtube,youtube_search
 find youtube videos about machine learning,youtube_search
 youtube search funny cat videos,youtube_search
@@ -71,6 +160,58 @@ watch gameplay on youtube,youtube_search
 look for movie trailers on youtube,youtube_search
 play some jazz on youtube,youtube_search
 find cooking recipes on youtube,youtube_search
+search youtube for motivational speeches,youtube_search
+find workout videos on youtube,youtube_search
+youtube search yoga for beginners,youtube_search
+look up ted talks on youtube,youtube_search
+play classical music on youtube,youtube_search
+find documentary on youtube,youtube_search
+search youtube for diy projects,youtube_search
+how to tie a tie youtube,youtube_search
+youtube search best coding setups,youtube_search
+find smartphone reviews on youtube,youtube_search
+watch funny fails on youtube,youtube_search
+search youtube for travel vlogs,youtube_search
+find music videos on youtube,youtube_search
+youtube search live news,youtube_search
+look for webinars on youtube,youtube_search
+play white noise on youtube,youtube_search
+search youtube for kids cartoons,youtube_search
+find history lessons on youtube,youtube_search
+youtube search physics explained,youtube_search
+look up math tutorials on youtube,youtube_search
+play meditation music on youtube,youtube_search
+search youtube for gardening tips,youtube_search
+find car reviews on youtube,youtube_search
+youtube search makeup tutorials,youtube_search
+look for fashion hauls on youtube,youtube_search
+play asmr on youtube,youtube_search
+search youtube for coding interview prep,youtube_search
+find stand up comedy on youtube,youtube_search
+youtube search movie reviews,youtube_search
+look up book reviews on youtube,youtube_search
+play 4k nature video on youtube,youtube_search
+search youtube for space documentaries,youtube_search
+find finance tips on youtube,youtube_search
+youtube search investing for beginners,youtube_search
+look up crypto news on youtube,youtube_search
+play ambient music on youtube,youtube_search
+search youtube for drawing tutorials,youtube_search
+find photography tips on youtube,youtube_search
+youtube search video editing tutorial,youtube_search
+look for photoshop tutorials on youtube,youtube_search
+play study music on youtube,youtube_search
+search youtube for productivity hacks,youtube_search
+find life hacks on youtube,youtube_search
+youtube search magic tricks,youtube_search
+look up science experiments on youtube,youtube_search
+play instrumentals on youtube,youtube_search
+search youtube for karaoke tracks,youtube_search
+find lyrics video on youtube,youtube_search
+youtube search concert footage,youtube_search
+look for unreleased songs on youtube,youtube_search
+play podcast on youtube,youtube_search
+search youtube for interviews,youtube_search
 increase volume to 50,volume_control
 set volume to 80 percent,volume_control
 decrease volume,volume_control
@@ -88,6 +229,39 @@ max volume,volume_control
 quiet mode,volume_control
 can you raise the volume,volume_control
 lower the volume please,volume_control
+mute audio,volume_control
+unmute audio,volume_control
+unmute sound,volume_control
+silence the computer,volume_control
+restore sound,volume_control
+set volume to zero,volume_control
+maximize volume,volume_control
+minimize volume,volume_control
+make it softer,volume_control
+reduce volume,volume_control
+boost volume,volume_control
+volume level 50,volume_control
+set sound to 30,volume_control
+volume 100%,volume_control
+volume 0%,volume_control
+mute speakers,volume_control
+unmute speakers,volume_control
+turn off sound,volume_control
+enable sound,volume_control
+disable sound,volume_control
+volume increment,volume_control
+volume decrement,volume_control
+raise audio level,volume_control
+lower audio level,volume_control
+set speaker volume,volume_control
+adjust volume up,volume_control
+adjust volume down,volume_control
+make it hearable,volume_control
+too loud,volume_control
+too quiet,volume_control
+can't hear anything,volume_control
+sound is too low,volume_control
+sound is too high,volume_control
 increase brightness to 80,brightness_control
 set screen brightness to 50,brightness_control
 dim screen to 10,brightness_control
@@ -102,6 +276,36 @@ adjust brightness,brightness_control
 make screen brighter,brightness_control
 make screen dimmer,brightness_control
 set display brightness,brightness_control
+lower brightness,brightness_control
+raise brightness,brightness_control
+set brightness low,brightness_control
+set brightness high,brightness_control
+brightness up,brightness_control
+brightness down,brightness_control
+brightness 100%,brightness_control
+brightness 0%,brightness_control
+maximize brightness,brightness_control
+minimize brightness,brightness_control
+reduce screen glare,brightness_control
+increase backlight,brightness_control
+decrease backlight,brightness_control
+make display brighter,brightness_control
+make display darker,brightness_control
+brightness to fifty,brightness_control
+brightness at max,brightness_control
+brightness at min,brightness_control
+full brightness,brightness_control
+lowest brightness,brightness_control
+change brightness,brightness_control
+screen brightness up,brightness_control
+screen brightness down,brightness_control
+set brightness level,brightness_control
+adjust screen light,brightness_control
+dim display,brightness_control
+brighten display,brightness_control
+night mode brightness,brightness_control
+day mode brightness,brightness_control
+screen light 50,brightness_control
 take a screenshot,screenshot
 capture the screen,screenshot
 screenshot this,screenshot
@@ -110,6 +314,28 @@ grab screenshot,screenshot
 snapshot screen,screenshot
 print screen,screenshot
 take snip,screenshot
+capture display,screenshot
+screen capture,screenshot
+snip this,screenshot
+save screen,screenshot
+screenshot entire screen,screenshot
+full screen capture,screenshot
+grab display,screenshot
+make a screenshot,screenshot
+do a screenshot,screenshot
+copy screen,screenshot
+image of screen,screenshot
+picture of screen,screenshot
+record screen as image,screenshot
+screenshot now,screenshot
+capture window,screenshot
+screenshot selection,screenshot
+take a snap,screenshot
+snap screen,screenshot
+get screenshot,screenshot
+screenshot desktop,screenshot
+click screen,screenshot
+save display image,screenshot
 what time is it,time
 tell me the current time,time
 what's the time now,time
@@ -119,29 +345,121 @@ what is the date today,time
 day and time,time
 current date,time
 what day is it,time
+tell me the date,time
+what's today's date,time
+current time,time
+clock check,time
+check the time,time
+is it morning or afternoon,time
+what day of the week is it,time
+date please,time
+today's date,time
+time right now,time
+exact time,time
+show me the time,time
+display time,time
+tell time,time
+what hour is it,time
+minute and hour,time
+time check,time
+date check,time
+calendar date,time
+what year is it,time
+month and day,time
+day of month,time
+current moment,time
+timestamp,time
+local time,time
+my time,time
 shutdown the computer,shutdown
 turn off system,shutdown
 turn off my pc,shutdown
 power off,shutdown
+restart computer,shutdown
+turn off laptop,shutdown
+system shutdown,shutdown
+switch off computer,shutdown
+kill system,shutdown
+shut it down,shutdown
+power down,shutdown
+halt system,shutdown
+stop computer,shutdown
+close everything and shutdown,shutdown
+goodbye computer,shutdown
+shutdown now,shutdown
 restart the laptop,restart
 reboot system,restart
 reboot machine,restart
-restart computer,shutdown
+restart pc,restart
+system reboot,restart
+restart now,restart
+reset computer,restart
+cycle power,restart
+reboot device,restart
 check battery status,battery
 how much battery is left,battery
 percentage of battery,battery
 battery level,battery
 power status,battery
 do i need to charge,battery
+battery life,battery
+remaining battery,battery
+charge level,battery
+battery percentage,battery
+is battery low,battery
+is battery full,battery
+check power,battery
+power level,battery
+energy status,battery
+battery info,battery
+battery check,battery
+how much charge,battery
+current battery,battery
+battery health,battery
 pause the youtube video,media_pause
 pause youtube,media_pause
 stop youtube,media_pause
 pause video on youtube,media_pause
+pause music,media_pause
+stop music,media_pause
+pause playback,media_pause
+stop playback,media_pause
+halt video,media_pause
+freeze video,media_pause
+pause it,media_pause
+stop it,media_pause
 resume youtube,media_play
 play video on youtube,media_play
 resume video,media_play
 start video,media_play
 continue video,media_play
+play music,media_play
+resume playback,media_play
+start playback,media_play
+unpause,media_play
+continue playing,media_play
+start playing,media_play
+play it,media_play
+next song,media_next
+skip song,media_next
+play next track,media_next
+skip this,media_next
+next video,media_next
+skip video,media_next
+next track,media_next
+go to next,media_next
+forward song,media_next
+jump to next,media_next
+previous song,media_prev
+go back to last song,media_prev
+play previous track,media_prev
+previous video,media_prev
+back to last song,media_prev
+previous track,media_prev
+restart song,media_prev
+replay song,media_prev
+go back,media_prev
+rewind song,media_prev
 play music on spotify,spotify_play
 play some rock music on spotify,spotify_play
 open spotify and play drake,spotify_play
@@ -151,27 +469,77 @@ play daft punk on spotify,spotify_play
 search spotify for jazz,spotify_play
 play believer on spotify,spotify_play
 play shape of you on spotify,spotify_play
-next song,media_next
-skip song,media_next
-play next track,media_next
-skip this,media_next
-previous song,media_prev
-go back to last song,media_prev
-play previous track,media_prev
+spotify play daily mix,spotify_play
+play my playlist on spotify,spotify_play
+spotify play energetic music,spotify_play
+play workout music on spotify,spotify_play
+play relaxing music on spotify,spotify_play
+play classical on spotify,spotify_play
+spotify play pop,spotify_play
+play hip hop on spotify,spotify_play
+play electronic music on spotify,spotify_play
+play country music on spotify,spotify_play
+play blues on spotify,spotify_play
+play metal on spotify,spotify_play
+play reggae on spotify,spotify_play
+spotify play discovery weekly,spotify_play
+play liked songs on spotify,spotify_play
+play spotify radio,spotify_play
+play album on spotify,spotify_play
+play artist on spotify,spotify_play
+start spotify playlist,spotify_play
+queue song on spotify,spotify_play
+spotify play mood booster,spotify_play
 lock the screen,system_lock
 lock my pc,system_lock
 lock computer,system_lock
+secure computer,system_lock
+screen lock,system_lock
+lock workstation,system_lock
+protect screen,system_lock
+lock session,system_lock
+sign out and lock,system_lock
+lock desktop,system_lock
+password protect,system_lock
+activate lock screen,system_lock
+go to lock screen,system_lock
+lock display,system_lock
+secure session,system_lock
 minimize window,window_minimize
 hide this window,window_minimize
 minimize everything,window_minimize
 show desktop,window_minimize
 go to desktop,window_minimize
+hide all windows,window_minimize
+minimize active window,window_minimize
+clear screen,window_minimize
+show home screen,window_minimize
+minimize current window,window_minimize
+hide application,window_minimize
+view desktop,window_minimize
+collapse window,window_minimize
+shrink window,window_minimize
+move to background,window_minimize
 read screen,vision
 look at screen,vision
 what is on screen,vision
 scan screen,vision
 explain this,vision
 what do you see,vision
+analyze screen,vision
+describe screen,vision
+read this text,vision
+what's happening on my screen,vision
+vision check,vision
+see screen,vision
+visualize screen,vision
+interpret screen,vision
+check display content,vision
+extract text from screen,vision
+identify visible elements,vision
+scan display,vision
+what am i looking at,vision
+describe this image,vision
 chat with me,chat
 let's talk,chat
 tell me a joke,chat
@@ -180,3 +548,25 @@ who are you,chat
 hello,chat
 hi,chat
 good morning,chat
+good afternoon,chat
+good evening,chat
+what's up,chat
+how's it going,chat
+tell me something funny,chat
+say something,chat
+speak to me,chat
+are you there,chat
+what can you do,chat
+introduce yourself,chat
+talk to me,chat
+conversation mode,chat
+make me laugh,chat
+wisdom quote,chat
+tell me a story,chat
+bored,chat
+entertain me,chat
+greetings,chat
+hey bot,chat
+hi assistant,chat
+who made you,chat
+what is your name,chat

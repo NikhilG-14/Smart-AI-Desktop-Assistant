@@ -12,7 +12,7 @@ electron_1.contextBridge.exposeInMainWorld('electron', {
         }
     },
     receive: (channel, func) => {
-        let validChannels = ["fromMain"];
+        let validChannels = ["fromMain", "activate-mic"];
         if (validChannels.includes(channel)) {
             // Deliberately strip event as it includes `sender` 
             electron_1.ipcRenderer.on(channel, (event, ...args) => func(...args));
