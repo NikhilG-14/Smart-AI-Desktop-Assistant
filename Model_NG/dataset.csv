@@ -1,0 +1,197 @@
+command, intent
+
+# OPEN APP
+
+open chrome,open_app
+launch chrome,open_app
+start google chrome,open_app
+open the browser,open_app
+i want to browse the web,open_app
+launch web browser,open_app
+run chrome,open_app
+open firefox,open_app
+start firefox,open_app
+open safari,open_app
+open visual studio code,open_app
+launch vscode,open_app
+start vs code,open_app
+open code editor,open_app
+i need to write some code,open_app
+open spotify,open_app
+launch spotify,open_app
+start music player,open_app
+open calculator,open_app
+start calculator,open_app
+open calendar,open_app
+check my schedule,open_app
+open notepad,open_app
+open terminal,open_app
+launch terminal,open_app
+open settings,open_app
+open whatsapp,open_app
+launch discord,open_app
+open slack,open_app
+open zoom,open_app
+
+
+
+
+# YOUTUBE SEARCH
+
+search for python tutorials on youtube,youtube_search
+find youtube videos about machine learning,youtube_search
+youtube search funny cat videos,youtube_search
+look up react course on youtube,youtube_search
+play lo fi music on youtube,youtube_search
+search youtube for gaming videos,youtube_search
+show me tech news on youtube,youtube_search
+open youtube and play rain sounds,youtube_search
+find cooking videos on youtube,youtube_search
+watch movie trailers on youtube,youtube_search
+play jazz music on youtube,youtube_search
+find music on youtube,youtube_search
+play a video on youtube,youtube_search
+
+
+# VOLUME CONTROL
+increase volume to 50,volume_control
+set volume to 80 percent,volume_control
+decrease volume,volume_control
+make it louder,volume_control
+mute the sound,volume_control
+volume up,volume_control
+volume down,volume_control
+increase volume by 20,volume_control
+decrease volume by 10,volume_control
+max volume,volume_control
+turn up the sound,volume_control
+turn down the sound,volume_control
+quiet mode,volume_control
+lower the volume please,volume_control
+
+
+# BRIGHTNESS CONTROL
+
+increase brightness to 80,brightness_control
+set screen brightness to 50,brightness_control
+dim screen to 10,brightness_control
+max brightness,brightness_control
+turn up the brightness,brightness_control
+set brightness to 100,brightness_control
+screen too bright,brightness_control
+screen too dark,brightness_control
+adjust brightness,brightness_control
+make screen dimmer,brightness_control
+
+
+# SCREENSHOT
+take a screenshot,screenshot
+capture the screen,screenshot
+screenshot this,screenshot
+save a picture of my desktop,screenshot
+grab screenshot,screenshot
+print screen,screenshot
+take screen snip,screenshot
+
+
+#TIME / DATE
+
+what time is it,time
+tell me the current time,time
+what's the time now,time
+do you know the time,time
+what is the date today,time
+current date,time
+what day is it,time
+day and time,time
+
+
+# SHUTDOWN
+shutdown the computer,shutdown
+turn off system,shutdown
+turn off my pc,shutdown
+power off the laptop,shutdown
+please shut down my system,shutdown
+shutdown now,shutdown
+
+
+# RESTART
+
+restart the laptop,restart
+reboot system,restart
+restart computer,restart
+restart my pc,restart
+please reboot the machine,restart
+
+# BATTERY
+
+check battery status,battery
+how much battery is left,battery
+battery percentage,battery
+battery level,battery
+power status,battery
+do i need to charge,battery
+
+
+#MEDIA CONTROL
+
+pause the youtube video,media_pause
+pause video,media_pause
+stop video,media_pause
+
+resume youtube,media_play
+play video,media_play
+continue video,media_play
+
+next song,media_next
+skip song,media_next
+play next track,media_next
+
+previous song,media_prev
+go back to last song,media_prev
+play previous track,media_prev
+
+
+# SPOTIFY PLAY
+
+play music on spotify,spotify_play
+play some rock music on spotify,spotify_play
+open spotify and play drake,spotify_play
+play taylor swift on spotify,spotify_play
+spotify play top hits,spotify_play
+search spotify for jazz,spotify_play
+
+
+# SYSTEM & WINDOW
+
+lock the screen,system_lock
+lock my pc,system_lock
+lock computer,system_lock
+
+minimize window,window_minimize
+hide this window,window_minimize
+show desktop,window_minimize
+go to desktop,window_minimize
+
+
+# VISION
+
+read screen,vision
+look at screen,vision
+what is on screen,vision
+scan screen,vision
+describe my screen,vision
+tell me what you see,vision
+
+
+# CHAT
+
+chat with me,chat
+let's talk,chat
+tell me a joke,chat
+how are you,chat
+who are you,chat
+hello,chat
+hi,chat
+good morning,chat
+
