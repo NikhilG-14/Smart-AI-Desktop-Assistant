@@ -133,7 +133,7 @@ The output (executable/installer) will be generated in the `dist` or `dist-elect
 ## 📁 Project Structure
 
 ```
-minor/
+minor/s
 ├── backend/            # Python FastAPI Server & ML Models
 │   ├── data/          # Training data (dataset.csv)
 │   ├── models/        # Saved ML models (pkl files)

@@ -9,14 +9,12 @@ import subprocess
 from backend.nlp.entity_extractor import EntityExtractor
 import screen_brightness_control as sbc
 
+
 class SystemActions:
     def __init__(self):
         try:
             self.engine = pyttsx3.init()
-            self.engine.setProperty('rate', 180) # Speed
-            # Optional: Select a voice
-            # voices = self.engine.getProperty('voices')
-            # self.engine.setProperty('voice', voices[0].id)
+            self.engine.setProperty('rate', 180)
         except:
             self.engine = None
             print("TTS Engine failed to initialize.")
@@ -30,63 +28,61 @@ class SystemActions:
                 print(f"TTS Error: {e}")
 
     def execute_action(self, intent: str, entities: dict) -> str:
-        """
-        Executes the system action based on intent and entities.
-        Returns a response string.
-        """
         response = ""
 
-        # ... (Intent handling logic) ...
-        
-        # [This part needs to be merged carefully inside execute_action, 
-        # but since I am replacing the file content, I will just ensure speak is called at the end if I were rewriting the whole flow. 
-        # However, the user wants me to EDIT the file. 
-        # I will inject the speak call at the end of the method.]
-
-        # ...
-        
-        # BRIGHTNESS LOGIC UPDATE
         if intent == "open_app":
             app_name = entities.get('app_name', '')
             if not app_name:
                 return "Which application should I open?"
-            
-            # Simple App Opening Logic (Mac/Win)
-            if platform.system() == "Darwin": # Mac
+
+            # ------------------ MAC PART (UNCHANGED) ------------------
+            if platform.system() == "Darwin":
                 try:
-                    # Common varations
-                    if "chrome" in app_name: app_name = "Google Chrome"
-                    if "code" in app_name: app_name = "Visual Studio Code"
-                    
+                    if "chrome" in app_name:
+                        app_name = "Google Chrome"
+                    if "code" in app_name:
+                        app_name = "Visual Studio Code"
+
                     os.system(f"open -a '{app_name}'")
                     response = f"Opening {app_name}..."
                 except Exception as e:
                     response = f"Could not open {app_name}: {e}"
-            else: # Windows
+
+            # ------------------ WINDOWS PART (OPTION 1 FIX) ------------------
+            else:
                 try:
-                    os.system(f"start {app_name}") 
+                    app_key = app_name.lower().strip()
+                    app_key = app_key.replace(".", "").replace("app", "").strip()
+
+                    # Use PowerShell to ask Windows to open the app by name
+                    command = f'powershell -Command "Start-Process \\"{app_key}\\""'
+
+                    subprocess.Popen(command, shell=True)
+
                     response = f"Opening {app_name}..."
-                except:
-                    response = f"Could not open {app_name}."
+
+                except Exception as e:
+                    response = f"Could not open {app_name}: {e}"
+
 
         elif intent == "youtube_search":
             query = entities.get('query', '')
             if query:
-                # Advanced: Try to find the first video ID to "Auto Play"
                 try:
                     import requests
                     import re
+
                     search_url = f"https://www.youtube.com/results?search_query={query.replace(' ', '+')}"
                     html = requests.get(search_url).text
                     video_ids = re.findall(r"watch\?v=(\S{11})", html)
+
                     if video_ids:
                         target_url = f"https://www.youtube.com/watch?v={video_ids[0]}"
                         webbrowser.open(target_url)
                         response = f"Playing {query} on YouTube..."
                     else:
-                        # Fallback to search results
-                         webbrowser.open(search_url)
-                         response = f"Found search results for {query}..."
+                        webbrowser.open(search_url)
+                        response = f"Found search results for {query}..."
                 except:
                     url = f"https://www.youtube.com/results?search_query={query.replace(' ', '+')}"
                     webbrowser.open(url)
@@ -98,18 +94,14 @@ class SystemActions:
         elif intent == "spotify_play":
             query = entities.get('query', '')
             if query:
-                # URL Encode the query for the spotify: URL scheme
                 import urllib.parse
                 safe_query = urllib.parse.quote(query)
-                
+
                 if platform.system() == "Darwin":
-                    # Mac: Open Spotify custom protocol
-                    # 'spotify:search:query'
                     os.system(f"open 'spotify:search:{safe_query}'")
                 else:
-                    # Windows
                     os.system(f"start spotify:search:{safe_query}")
-                
+
                 response = f"Playing {query} on Spotify..."
             else:
                 if platform.system() == "Darwin":
@@ -121,37 +113,29 @@ class SystemActions:
         elif intent == "volume_control":
             value = entities.get('value')
             direction = entities.get('direction')
-            
+
             if value is not None:
                 if platform.system() == "Darwin":
                     os.system(f"osascript -e 'set volume output volume {value}'")
                 response = f"Volume set to {value}%"
             elif direction:
-                 response = f"Turning volume {direction}..."
+                response = f"Turning volume {direction}..."
 
         elif intent == "brightness_control":
             value = entities.get('value')
             if value is not None:
                 try:
-                    # Try cross-platform library first
                     sbc.set_brightness(value)
                     response = f"Brightness set to {value}%"
                 except Exception as e:
                     print(f"SBC Error: {e}")
-                    # Mac Fallback using `brightness` command (brew install brightness) or osascript
                     if platform.system() == "Darwin":
-                        try:
-                            # Attempt applescript for built-in display (often works for main display)
-                            # 'tell application "System Events" to set value of property "brightness" of (first service where name is "CoreGraphics") to {value/100}' is deprecated/hard.
-                            # Better fallback: Just notify user.
-                            response = f"Could not set brightness. Ensure 'screen-brightness-control' has permissions."
-                        except:
-                            response = "Brightness control failed."
+                        response = f"Could not set brightness. Ensure 'screen-brightness-control' has permissions."
                     else:
                         response = "Could not control brightness."
-        
+
         elif intent == "screenshot":
-            desktop = os.path.join(os.path.join(os.path.expanduser('~')), 'Desktop')
+            desktop = os.path.join(os.path.expanduser('~'), 'Desktop')
             filename = f"screenshot_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
             filepath = os.path.join(desktop, filename)
             pyautogui.screenshot().save(filepath)
@@ -160,42 +144,35 @@ class SystemActions:
         elif intent == "time":
             now = datetime.datetime.now().strftime("%I:%M %p")
             response = f"The current time is {now}."
-            
+
         elif intent == "date":
-             today = datetime.datetime.now().strftime("%A, %B %d, %Y")
-             response = f"Today is {today}."
+            today = datetime.datetime.now().strftime("%A, %B %d, %Y")
+            response = f"Today is {today}."
 
         elif intent in ["shutdown", "restart"]:
-            if intent == "shutdown":
-                # os.system("shutdown -h now") # Dangerous to uncomment for testing
-                response = "I cannot shut down the system in demo mode."
-            else:
-                response = "I cannot restart the system in demo mode."
-        
+            response = "I cannot perform this action in demo mode."
+
         elif intent == "unknown":
             response = "I'm not sure how to help with that yet."
-            
+
         elif intent == "media_pause":
-            # YouTube uses 'k' or 'space'. Global media is 'playpause'.
-            # Send 'k' first (best for YouTube), then 'playpause' for background apps
-            pyautogui.press('k') 
+            pyautogui.press('k')
             pyautogui.press('playpause')
             response = "Paused playback."
-        
+
         elif intent == "media_play":
             pyautogui.press('k')
             pyautogui.press('playpause')
             response = "Resumed playback."
-            
+
         elif intent == "media_next":
             pyautogui.press('nexttrack')
-             # Shift+N for YouTube next?
             response = "Skipped to next track."
 
         elif intent == "media_prev":
             pyautogui.press('prevtrack')
             response = "Playing previous track."
-            
+
         elif intent == "system_lock":
             if platform.system() == "Darwin":
                 os.system("pmset displaysleepnow")
@@ -205,9 +182,7 @@ class SystemActions:
 
         elif intent == "window_minimize":
             if platform.system() == "Darwin":
-                # Mac 'Mission Control' or Show Desktop often F11 or Cmd+F3. 
-                # Simplest is generic hotkey if setup, but usually:
-                pyautogui.hotkey('command', 'm') # Minimize active
+                pyautogui.hotkey('command', 'm')
                 response = "Minimized active window."
             else:
                 pyautogui.hotkey('win', 'd')
@@ -218,4 +193,5 @@ class SystemActions:
 
         if self.engine:
             self.speak(response)
+
         return response
