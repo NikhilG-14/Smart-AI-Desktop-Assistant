@@ -24,14 +24,43 @@ html,
 body,
 #root {
   height: 100%;
+  width: 100%;
   margin: 0;
   padding: 0;
   overflow: hidden;
-  /* Prevent double scrollbars */
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 body {
-  background-color: #000;
+  font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
+  background: radial-gradient(circle at 50% 50%, #1a1a1a, #000000);
+  background-attachment: fixed;
   color: #fff;
   -webkit-font-smoothing: antialiased;
+}
+
+.acrylic {
+  background: rgba(40, 40, 40, 0.5);
+  backdrop-filter: blur(25px) saturate(180%);
+  -webkit-backdrop-filter: blur(25px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}
+
+.windows-btn {
+  transition: all 0.2s;
+}
+
+.windows-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.windows-btn:active {
+  background-color: rgba(255, 255, 255, 0.05);
+  transform: scale(0.98);
 }

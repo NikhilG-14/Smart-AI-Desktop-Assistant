@@ -193,13 +193,13 @@ export function ChatInterface() {
     }, []); // Run once on mount
 
     return (
-        <div className="flex h-screen w-screen bg-black text-white font-sans overflow-hidden p-2 gap-2">
+        <div className="flex h-full w-full bg-transparent text-white font-sans overflow-hidden gap-4">
 
             {/* --- LEFT PANEL: STATUS & CAM --- */}
-            <div className="w-1/4 flex flex-col gap-2">
+            <div className="w-80 flex-shrink-0 flex flex-col gap-4 h-full">
 
                 {/* Cam Feed */}
-                <div className="h-1/3 bg-gray-900/40 border border-gray-800 rounded-xl relative overflow-hidden group">
+                <div className="h-1/3 acrylic rounded-xl relative overflow-hidden group">
                     <div className="absolute top-2 left-2 flex items-center gap-2 z-10">
                         <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                         <span className="text-[10px] uppercase font-mono tracking-widest text-red-500">Video Input</span>
@@ -220,7 +220,7 @@ export function ChatInterface() {
                 </div>
 
                 {/* System Metrics */}
-                <div className="flex-1 bg-gray-900/40 border border-gray-800 rounded-xl p-4 flex flex-col gap-6">
+                <div className="flex-1 acrylic rounded-xl p-4 flex flex-col gap-6">
                     <div className="flex items-center gap-2 border-b border-gray-800 pb-2">
                         <Activity size={16} className="text-cyan-400" />
                         <span className="text-xs font-bold text-gray-400 tracking-widest">SYSTEM METRICS</span>
@@ -241,9 +241,9 @@ export function ChatInterface() {
             </div>
 
             {/* --- CENTER PANEL: THE CORE --- */}
-            <div className="flex-1 flex flex-col bg-gray-900/20 border border-gray-800/50 rounded-xl relative overflow-hidden">
+            <div className="flex-1 min-w-0 flex flex-col acrylic rounded-2xl relative overflow-hidden h-full">
                 {/* Header */}
-                <div className="absolute top-0 w-full p-4 flex justify-between items-start z-10">
+                <div className="w-full p-4 flex justify-between items-start z-10 shrink-0">
                     <div>
                         <h1 className="text-2xl font-black tracking-[0.2em] text-cyan-500 uppercase">J.A.R.V.I.S.</h1>
                         <div className="text-[10px] text-gray-500 font-mono mt-1">ADVANCED SYSTEMS TYPE-R</div>
@@ -311,7 +311,7 @@ export function ChatInterface() {
             </div>
 
             {/* --- RIGHT PANEL: TRANSCRIPT --- */}
-            <div className="w-1/4 bg-gray-900/40 border border-gray-800 rounded-xl flex flex-col overflow-hidden">
+            <div className="w-80 flex-shrink-0 acrylic rounded-2xl flex flex-col overflow-hidden h-full">
                 <div className="p-3 border-b border-gray-800 bg-gray-900/50">
                     <h3 className="text-xs font-bold text-gray-400 tracking-widest uppercase flex items-center gap-2">
                         <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
