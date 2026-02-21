@@ -17,3 +17,5 @@ Pillow
 matplotlib
 seaborn
 ipykernel
+sqlalchemy
+psutil

@@ -1,27 +1,20 @@
 import os
 import json
-import re
-import google.generativeai as genai
-from google.api_core.exceptions import ResourceExhausted
-from dotenv import load_dotenv
+import requests
 import pyautogui
+from dotenv import load_dotenv
 from backend.os_adapter.system_actions import SystemActions
-from backend.skills import open_website
+from backend.skills import open_website, set_reminder, set_timer
 
 # Load environment variables
 env_path = os.path.join(os.path.dirname(__file__), '.env')
 load_dotenv(env_path)
 
-api_key = os.getenv("GEMINI_API_KEY")
-if not api_key:
-    print("Warning: GEMINI_API_KEY not found in .env file.")
-
-# Configure Gemini
-if api_key:
-    genai.configure(api_key=api_key)
-
 # Initialize System Actions
 actions = SystemActions()
+
+OLLAMA_URL = "http://localhost:11434/api/chat"
+MODEL_NAME = "qwen3:1.7b"  # User requested qwen3:1.7b
 
 SYSTEM_PROMPT = """You are a desktop assistant embedded inside an Electron application.
 
@@ -64,7 +57,10 @@ mute_system
 unmute_system
 set_volume
 search_web
+set_reminder
+set_timer
 unsupported
+
 🔹 SLOT DEFINITIONS
 open_app:
   app_name: string
@@ -77,43 +73,52 @@ set_volume:
 
 search_web:
   query: string
+
+set_reminder:
+  message: string (raw user text for the reminder)
+  
+set_timer:
+  duration: string (e.g. '10 minutes', '30 seconds')
+
 🔹 USER PROMPT TEMPLATE (WHAT YOU SEND PER MESSAGE)
 User command:
 "<USER_INPUT>"
+
 🔹 BEHAVIOR RULES (CRITICAL)
 - If user says "pause it", rely on context and return pause_media
 - If user says "unpause" or "resume", return resume_media
 - If user says "play something", ask clarification
 - If user asks for something not listed, return unsupported
-- Never guess app names
-- Never assume video titles
+- For reminders, pass the full text like "remind me to buy milk in 10 mins" as the message slot
+- For timers, extract the duration phrase
 """
-
-# Initialize the model (No tools, just JSON mode)
-model = genai.GenerativeModel(
-    model_name='gemini-2.0-flash',
-    system_instruction=SYSTEM_PROMPT,
-    generation_config={"response_mime_type": "application/json"}
-)
-
-chat = model.start_chat()
 
 def process_command(user_input: str) -> str:
     """
-    Sends input to Gemini, parses JSON intent, and executes the action locally.
+    Sends input to Ollama, parses JSON intent, and executes the action locally.
     Returns a natural language response string for the frontend.
     """
-    if not api_key:
-        return "I need a GEMINI_API_KEY to process commands."
-
     try:
-        # 1. Get Intent from Brain
-        response = chat.send_message(f'User command:\n"{user_input}"')
-        response_text = response.text
+        # 1. Get Intent from Ollama
+        payload = {
+            "model": MODEL_NAME,
+            "messages": [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": f'User command:\n"{user_input}"'}
+            ],
+            "format": "json",
+            "stream": False
+        }
         
+        response = requests.post(OLLAMA_URL, json=payload)
+        response.raise_for_status()
+        
+        response_json = response.json()
+        response_text = response_json.get("message", {}).get("content", "")
+
         # 2. Parse JSON
         try:
-            # Clean up markdown code blocks if present (though response_mime_type should prevent this)
+            # Although format="json" helps, sometimes models chatter.
             clean_json = response_text.replace('```json', '').replace('```', '').strip()
             data = json.loads(clean_json)
         except json.JSONDecodeError:
@@ -164,37 +169,35 @@ def process_command(user_input: str) -> str:
              # Hard to 'unmute' to previous level without state, setting to 50 as safe default
              return actions.execute_action("volume_control", {"value": 50})
 
+        elif intent == "set_reminder":
+            message = slots.get("message")
+            if message:
+                return set_reminder(message)
+            return "What should I remind you about?"
+
+        elif intent == "set_timer":
+            duration = slots.get("duration")
+            if duration:
+                return set_timer(duration)
+            return "How long should I set the timer for?"
+
         elif intent == "unsupported":
             return "I cannot perform that action yet."
             
         else:
             return f"I recognized the intent '{intent}' but don't have a protocol for it yet."
 
-    except ResourceExhausted:
-         print("Quota Exceeded (429).")
-         return "My cognitive systems are overloaded (Quota Exceeded). Please wait a moment before sending another command."
+    except requests.exceptions.RequestException as e:
+        print(f"Ollama Connection Error: {e}")
+        return "I cannot reach my brain (Ollama is offline or unreachable)."
     except Exception as e:
         print(f"Error in process_command: {e}")
         return f"System Error: {str(e)}"
 
 def analyze_screen(user_query: str) -> str:
     """
-    Takes a screenshot and asks Gemini 1.5 Flash to explain it.
+    Takes a screenshot and asks Ollama to explain it.
+    NOTE: qwen3:1.7b is not a vision model, so this will either fail or we need a vision model.
+    For now, disabling vision or returning a friendly error.
     """
-    if not api_key:
-        return "I need a GEMINI_API_KEY to see your screen."
-
-    try:
-        print("Capturing screen for analysis...")
-        screenshot = pyautogui.screenshot()
-        
-        vision_model = genai.GenerativeModel('gemini-2.0-flash-exp')
-        
-        prompt = user_query or "Describe what is on this screen in detail."
-        response = vision_model.generate_content([prompt, screenshot])
-        
-        return response.text
-    except ResourceExhausted:
-        return "I cannot verify visual data right now (Quota Exceeded). Please try again later."
-    except Exception as e:
-        return f"Vision Error: {str(e)}"
+    return "Visual analysis is not supported with the current model settings."

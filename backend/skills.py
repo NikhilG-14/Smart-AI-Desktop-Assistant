@@ -5,6 +5,11 @@ import platform
 import datetime
 import os
 import time
+from backend.database import SessionLocal, Reminder, Timer, engine
+from sqlalchemy.orm import Session
+# Ensure tables exist if running skills individually (though server handles it)
+from backend.database import Base
+Base.metadata.create_all(bind=engine)
 
 def open_website(url: str) -> str:
     """Opens a specific URL in the default web browser."""
@@ -109,3 +114,72 @@ def take_screenshot() -> str:
         return f"Screenshot saved to {filepath}"
     except Exception as e:
         return f"Error taking screenshot: {str(e)}"
+
+def set_timer(duration_str: str) -> str:
+    """
+    Sets a timer. content should be like '10 minutes', '30 seconds', etc.
+    """
+    try:
+        duration_seconds = 0
+        parts = duration_str.lower().split()
+        
+        # Simple parsing logic
+        if 'minute' in duration_str:
+            # Extract number before 'minute'
+            for part in parts:
+                if part.isdigit():
+                    duration_seconds += int(part) * 60
+        elif 'second' in duration_str:
+             for part in parts:
+                if part.isdigit():
+                    duration_seconds += int(part)
+        elif 'hour' in duration_str:
+             for part in parts:
+                if part.isdigit():
+                    duration_seconds += int(part) * 3600
+        
+        if duration_seconds == 0:
+            return "Could not understand duration. Please say something like '10 minutes'."
+
+        db: Session = SessionLocal()
+        timer = Timer(label="Timer", duration_seconds=duration_seconds, start_time=datetime.datetime.now(), is_active=True)
+        db.add(timer)
+        db.commit()
+        db.close()
+        
+        return f"Timer set for {duration_str}."
+    except Exception as e:
+        return f"Error setting timer: {str(e)}"
+
+def set_reminder(message: str) -> str:
+    """
+    Sets a reminder. Currently just parses a simple message. 
+    Ideal format: 'remind me to X in Y minutes' or just 'remind me to X' (saves without time).
+    """
+    try:
+        # Very basic extraction for demo. 
+        # In a real app, use dateparser or similar.
+        # Assuming format "remind me to [action] in [time]"
+        
+        message = message.replace("remind me to", "").strip()
+        due_time = datetime.datetime.now() + datetime.timedelta(minutes=5) # Default 5 mins if no time found
+        
+        # Check for "in X minutes"
+        parts = message.split()
+        if "in" in parts:
+            idx = parts.index("in")
+            if idx + 1 < len(parts) and parts[idx+1].isdigit():
+                minutes = int(parts[idx+1])
+                due_time = datetime.datetime.now() + datetime.timedelta(minutes=minutes)
+                # Remove time part from message
+                message = " ".join(parts[:idx])
+        
+        db: Session = SessionLocal()
+        reminder = Reminder(message=message, due_time=due_time)
+        db.add(reminder)
+        db.commit()
+        db.close()
+        
+        return f"Reminder set: '{message}' for {due_time.strftime('%I:%M %p')}."
+    except Exception as e:
+        return f"Error setting reminder: {str(e)}"
