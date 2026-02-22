@@ -86,7 +86,7 @@ async def chat_endpoint(request: ChatRequest):
     # --- 2. Brain (LLM) First Strategy ---
     # The user requested Strict JSON handling via LLM.
     # We prioritize the Gemini Brain for all commands to ensure accuracy and rule adherence.
-    print(f"Routing '{user_text}' to Gemini Brain...")
+    print(f"Routing '{user_text}' to Vanini's Brain...")
     
     try:
         # process_command now handles the JSON parsing and local execution internally
