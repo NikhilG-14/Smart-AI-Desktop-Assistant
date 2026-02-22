@@ -14,9 +14,20 @@ class SystemActions:
         try:
             self.engine = pyttsx3.init()
             self.engine.setProperty('rate', 180) # Speed
-            # Optional: Select a voice
-            # voices = self.engine.getProperty('voices')
-            # self.engine.setProperty('voice', voices[0].id)
+            # Select a female voice if available
+            voices = self.engine.getProperty('voices')
+            female_voice = None
+            for voice in voices:
+                v_name = voice.name.lower()
+                if any(name in v_name for name in ['female', 'zira', 'samantha', 'victoria', 'karen', 'moira', 'tessa']):
+                    female_voice = voice.id
+                    break
+            
+            if female_voice:
+                self.engine.setProperty('voice', female_voice)
+            elif len(voices) > 1:
+                # Fallback to index 1 which is often alternate/female on some OSs
+                self.engine.setProperty('voice', voices[1].id)
         except:
             self.engine = None
             print("TTS Engine failed to initialize.")
@@ -50,24 +61,54 @@ class SystemActions:
             app_name = entities.get('app_name', '')
             if not app_name:
                 return "Which application should I open?"
+
+            lower_app = app_name.lower().strip()
             
-            # Simple App Opening Logic (Mac/Win)
-            if platform.system() == "Darwin": # Mac
-                try:
-                    # Common varations
-                    if "chrome" in app_name: app_name = "Google Chrome"
-                    if "code" in app_name: app_name = "Visual Studio Code"
-                    
-                    os.system(f"open -a '{app_name}'")
-                    response = f"Opening {app_name}..."
-                except Exception as e:
-                    response = f"Could not open {app_name}: {e}"
-            else: # Windows
-                try:
-                    os.system(f"start {app_name}") 
-                    response = f"Opening {app_name}..."
-                except:
-                    response = f"Could not open {app_name}."
+            # Map common web apps to their URLs
+            web_apps = {
+                "youtube": "https://www.youtube.com",
+                "google": "https://www.google.com",
+                "gmail": "https://mail.google.com",
+                "chatgpt": "https://chat.openai.com",
+                "github": "https://github.com",
+                "netflix": "https://www.netflix.com",
+                "whatsapp": "https://web.whatsapp.com"
+            }
+
+            if lower_app in web_apps:
+                import webbrowser
+                webbrowser.open(web_apps[lower_app])
+                response = f"Opening {app_name}..."
+            else:
+                # Simple Desktop App Opening Logic (Mac/Win)
+                if platform.system() == "Darwin": # Mac
+                    try:
+                        # Common varations
+                        if "chrome" in lower_app: app_name = "Google Chrome"
+                        elif "code" in lower_app: app_name = "Visual Studio Code"
+                        elif "spotify" in lower_app: app_name = "Spotify"
+                        elif "safari" in lower_app: app_name = "Safari"
+                        elif "music" in lower_app or "itunes" in lower_app: app_name = "Music"
+                        elif "notes" in lower_app: app_name = "Notes"
+                        elif "calculator" in lower_app: app_name = "Calculator"
+                        elif "terminal" in lower_app: app_name = "Terminal"
+                        
+                        exit_code = os.system(f"open -a '{app_name}'")
+                        if exit_code == 0:
+                            response = f"Opening {app_name}..."
+                        else:
+                            # Fallback if app doesn't exist, try searching for it or open as URL
+                            app_url_search = f"https://www.google.com/search?q={app_name.replace(' ', '+')}"
+                            webbrowser.open(app_url_search)
+                            response = f"Could not find the app {app_name}, opening a web search instead."
+                    except Exception as e:
+                        response = f"Could not open {app_name}: {e}"
+                else: # Windows
+                    try:
+                        os.system(f"start {app_name}") 
+                        response = f"Opening {app_name}..."
+                    except:
+                        response = f"Could not open {app_name}."
 
         elif intent == "youtube_search":
             query = entities.get('query', '')

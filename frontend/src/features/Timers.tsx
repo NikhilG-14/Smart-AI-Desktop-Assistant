@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Trash2, Play, Plus, Clock } from 'lucide-react';
+import { Trash2, Plus, Clock } from 'lucide-react';
 
 interface Timer {
     id: number;

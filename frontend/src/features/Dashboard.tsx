@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Cloud, Sun, Calendar, Clock, CheckCircle, Bell } from 'lucide-react';
+import { Cloud, Sun, Calendar, CheckCircle, Bell } from 'lucide-react';
 import { SystemMonitor } from '../components/SystemMonitor';
 
 export const Dashboard: React.FC = () => {

@@ -68,12 +68,16 @@ async def chat_endpoint(request: ChatRequest):
     user_text = request.message
     
     # --- Wake Word Check ---
-    WAKE_WORD = "jarvis"
-    if not user_text.lower().startswith(WAKE_WORD):
-        return {"response": None}  # Or customized message: "Say 'Jarvis' to wake me up."
+    wake_words = ["vanini", "vani", "vanni", "वानी", "वाणि", "वनी"]
+    lower_text = user_text.lower().strip()
     
-    # Strip wake word
-    user_text = user_text[len(WAKE_WORD):].strip()
+    matched_word = next((w for w in wake_words if w in lower_text), None)
+
+    if not matched_word:
+        return {"ignored": True, "response": ""}
+
+    # Remove the wake word and any leading/trailing whitespace
+    user_text = lower_text.replace(matched_word, "", 1).strip()
     if not user_text:
          return {"response": "Yes?"}
 

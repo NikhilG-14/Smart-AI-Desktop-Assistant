@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Activity, Cpu, HardDrive, Wifi } from 'lucide-react';
+import { Activity, Cpu, HardDrive } from 'lucide-react';
 
 interface SystemStats {
     cpu: number;

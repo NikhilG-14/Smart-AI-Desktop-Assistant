@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, Moon, Volume2, Shield, User } from 'lucide-react';
+import { Bell, Moon, Volume2, Shield } from 'lucide-react';
 
 export const Settings: React.FC = () => {
     return (

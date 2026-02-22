@@ -10,7 +10,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
-    title: 'JARVIS',
+    title: 'VANINI',
     frame: true, // We can make this false for a custom UI later
     webPreferences: {
       nodeIntegration: true,
