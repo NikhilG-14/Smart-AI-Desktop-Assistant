@@ -13,8 +13,12 @@ load_dotenv(env_path)
 # Initialize System Actions
 actions = SystemActions()
 
-OLLAMA_URL = "http://localhost:11434/api/chat"
-MODEL_NAME = "qwen3:1.7b"  # User requested qwen3:1.7b
+MODEL_NAME = os.getenv("OLLAMA_MODEL", "qwen3:1.7b")
+BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", 0))
+LLM_TIMEOUT = int(os.getenv("LLM_TIMEOUT", 60))
+
+OLLAMA_URL = f"{BASE_URL}/api/generate"
 
 SYSTEM_PROMPT = """You are a desktop assistant embedded inside an Electron application.
 
@@ -102,19 +106,20 @@ def process_command(user_input: str) -> str:
         # 1. Get Intent from Ollama
         payload = {
             "model": MODEL_NAME,
-            "messages": [
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": f'User command:\n"{user_input}"'}
-            ],
-            "format": "json",
+            "prompt": f"{SYSTEM_PROMPT}\n\nUser command:\n\"{user_input}\"",
+            "temperature": LLM_TEMPERATURE,
             "stream": False
         }
         
-        response = requests.post(OLLAMA_URL, json=payload)
+        response = requests.post(
+            OLLAMA_URL,
+            json=payload,
+            timeout=LLM_TIMEOUT
+        )
         response.raise_for_status()
         
         response_json = response.json()
-        response_text = response_json.get("message", {}).get("content", "")
+        response_text = response_json.get("response", "")
 
         # 2. Parse JSON
         try:
