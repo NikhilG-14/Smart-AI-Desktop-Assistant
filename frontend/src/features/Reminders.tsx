@@ -1,123 +1,287 @@
-import React, { useEffect, useState } from 'react';
-import { Trash2, Plus, Bell } from 'lucide-react';
+import { useState, useCallback } from 'react';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type Priority = 'low' | 'medium' | 'high';
+type ReminderStatus = 'pending' | 'done';
 
 interface Reminder {
-    id: number;
-    message: string;
-    due_time: string;
-    is_completed: boolean;
+  id: string;
+  text: string;
+  datetime: string;
+  priority: Priority;
+  status: ReminderStatus;
+  createdAt: Date;
 }
 
-const Reminders: React.FC = () => {
-    const [reminders, setReminders] = useState<Reminder[]>([]);
-    const [newMessage, setNewMessage] = useState('');
-    const [dueTime, setDueTime] = useState('');
+// ─── Config ───────────────────────────────────────────────────────────────────
 
-    const fetchReminders = async () => {
-        try {
-            const res = await fetch('http://127.0.0.1:8000/reminders');
-            if (res.ok) {
-                const data = await res.json();
-                setReminders(data);
-            }
-        } catch (error) {
-            console.error("Failed to fetch reminders", error);
-        }
-    };
-
-    useEffect(() => {
-        fetchReminders();
-        const interval = setInterval(fetchReminders, 10000); // Poll every 10s
-        return () => clearInterval(interval);
-    }, []);
-
-    const addReminder = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!newMessage) return;
-
-        // Use current time + 1 hour if not specified, or parsing inputs
-        // For this simple UI, we'll just send the time.
-        // If dueTime is empty, default to 15 mins later
-
-        let targetTime = dueTime;
-        if (!targetTime) {
-            const now = new Date();
-            now.setMinutes(now.getMinutes() + 15);
-            targetTime = now.toISOString();
-        } else {
-            // Ensure ISO format
-            targetTime = new Date(dueTime).toISOString();
-        }
-
-        try {
-            await fetch('http://127.0.0.1:8000/reminders', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: newMessage, due_time: targetTime }),
-            });
-            setNewMessage('');
-            setDueTime('');
-            fetchReminders();
-        } catch (error) {
-            console.error("Failed to add reminder", error);
-        }
-    };
-
-    const deleteReminder = async (id: number) => {
-        try {
-            await fetch(`http://127.0.0.1:8000/reminders/${id}`, { method: 'DELETE' });
-            fetchReminders();
-        } catch (error) {
-            console.error("Failed to delete reminder", error);
-        }
-    };
-
-    return (
-        <div className="h-full flex flex-col space-y-6">
-            <h2 className="text-3xl font-light mb-4 flex items-center gap-2">
-                <Bell className="w-8 h-8 text-cyan-400" /> Reminders
-            </h2>
-
-            <form onSubmit={addReminder} className="acrylic p-4 rounded-xl flex gap-4 items-center">
-                <input
-                    type="text"
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    placeholder="New task..."
-                    className="bg-transparent border-b border-gray-600 flex-1 p-2 outline-none focus:border-cyan-400 transition-colors"
-                />
-                <input
-                    type="datetime-local"
-                    value={dueTime}
-                    onChange={(e) => setDueTime(e.target.value)}
-                    className="bg-gray-800/50 border border-gray-600 rounded p-2 text-sm text-white focus:border-cyan-400 outline-none"
-                />
-                <button type="submit" className="p-2 bg-cyan-600/20 hover:bg-cyan-600/40 text-cyan-400 rounded-full transition-colors">
-                    <Plus size={24} />
-                </button>
-            </form>
-
-            <div className="flex-1 overflow-y-auto space-y-3 pr-2">
-                {reminders.map((rem) => (
-                    <div key={rem.id} className="acrylic p-4 rounded-xl flex items-center justify-between group hover:bg-white/5 transition-all">
-                        <div>
-                            <p className="text-lg">{rem.message}</p>
-                            <p className="text-xs text-gray-400">Due: {new Date(rem.due_time).toLocaleString()}</p>
-                        </div>
-                        <button
-                            onClick={() => deleteReminder(rem.id)}
-                            className="p-2 text-gray-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
-                        >
-                            <Trash2 size={20} />
-                        </button>
-                    </div>
-                ))}
-                {reminders.length === 0 && (
-                    <p className="text-center text-gray-500 mt-10">No active reminders.</p>
-                )}
-            </div>
-        </div>
-    );
+const PRIORITY_CONFIG: Record<Priority, { label: string; color: string; badge: string }> = {
+  low:    { label: 'Low',    color: '#34d399', badge: 'badge-green'  },
+  medium: { label: 'Medium', color: '#f59e0b', badge: 'badge-cyan'   },
+  high:   { label: 'High',   color: '#f87171', badge: 'badge-red'    },
 };
 
-export default Reminders;
+// ─── Reminder Card ────────────────────────────────────────────────────────────
+
+function ReminderCard({
+  reminder,
+  onToggle,
+  onDelete,
+}: {
+  reminder: Reminder;
+  onToggle: (id: string) => void;
+  onDelete: (id: string) => void;
+}) {
+  const cfg  = PRIORITY_CONFIG[reminder.priority];
+  const done = reminder.status === 'done';
+
+  const fmtDate = (dt: string) => {
+    if (!dt) return 'No date set';
+    try {
+      return new Date(dt).toLocaleString([], {
+        month: 'short', day: 'numeric',
+        hour: '2-digit', minute: '2-digit',
+      });
+    } catch {
+      return dt;
+    }
+  };
+
+  return (
+    <div
+      className="card flex items-start gap-3 transition-all duration-200"
+      style={{
+        opacity: done ? 0.5 : 1,
+        borderColor: done ? 'rgba(255,255,255,0.04)' : `${cfg.color}20`,
+      }}
+    >
+      {/* Checkbox */}
+      <button
+        onClick={() => onToggle(reminder.id)}
+        className="shrink-0 mt-0.5 w-5 h-5 rounded-md border flex items-center justify-center
+                   transition-all duration-200"
+        style={{
+          borderColor: done ? 'rgba(255,255,255,0.15)' : cfg.color,
+          background: done ? cfg.color : 'transparent',
+        }}
+      >
+        {done && (
+          <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+            <polyline points="2,6 5,9 10,3" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        )}
+      </button>
+
+      {/* Content */}
+      <div className="flex-1 min-w-0">
+        <p
+          className={`text-sm leading-relaxed ${done ? 'text-white/30 line-through' : 'text-white/80'}`}
+          style={{ fontFamily: "'DM Sans', sans-serif" }}
+        >
+          {reminder.text}
+        </p>
+        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+          <span className={`badge ${cfg.badge}`}>{cfg.label}</span>
+          {reminder.datetime && (
+            <span
+              className="text-[10px] text-white/30"
+              style={{ fontFamily: "'Space Mono', monospace" }}
+            >
+              {fmtDate(reminder.datetime)}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Delete */}
+      <button
+        onClick={() => onDelete(reminder.id)}
+        className="shrink-0 w-6 h-6 rounded-lg flex items-center justify-center
+                   text-white/15 hover:text-white/60 hover:bg-white/05 transition-all text-xs"
+      >
+        ✕
+      </button>
+    </div>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
+const SAMPLE_REMINDERS: Reminder[] = [
+  {
+    id: '1',
+    text: 'Team standup meeting',
+    datetime: new Date(Date.now() + 30 * 60000).toISOString().slice(0, 16),
+    priority: 'high',
+    status: 'pending',
+    createdAt: new Date(),
+  },
+  {
+    id: '2',
+    text: 'Review PR #42 — auth refactor',
+    datetime: new Date(Date.now() + 2 * 3600000).toISOString().slice(0, 16),
+    priority: 'medium',
+    status: 'pending',
+    createdAt: new Date(),
+  },
+  {
+    id: '3',
+    text: 'Take a 10-minute break and stretch',
+    datetime: '',
+    priority: 'low',
+    status: 'done',
+    createdAt: new Date(),
+  },
+];
+
+export default function Reminders() {
+  const [reminders, setReminders] = useState<Reminder[]>(SAMPLE_REMINDERS);
+  const [newText,   setNewText]   = useState('');
+  const [newDate,   setNewDate]   = useState('');
+  const [newPriority, setNewPriority] = useState<Priority>('medium');
+  const [filter, setFilter] = useState<'all' | 'pending' | 'done'>('all');
+
+  const add = useCallback(() => {
+    if (!newText.trim()) return;
+    setReminders(prev => [{
+      id: crypto.randomUUID(),
+      text: newText.trim(),
+      datetime: newDate,
+      priority: newPriority,
+      status: 'pending',
+      createdAt: new Date(),
+    }, ...prev]);
+    setNewText('');
+    setNewDate('');
+    setNewPriority('medium');
+  }, [newText, newDate, newPriority]);
+
+  const toggle = useCallback((id: string) => {
+    setReminders(prev => prev.map(r =>
+      r.id !== id ? r : { ...r, status: r.status === 'done' ? 'pending' : 'done' }
+    ));
+  }, []);
+
+  const remove = useCallback((id: string) => {
+    setReminders(prev => prev.filter(r => r.id !== id));
+  }, []);
+
+  const clearDone = () => setReminders(prev => prev.filter(r => r.status !== 'done'));
+
+  const filtered = reminders.filter(r => filter === 'all' || r.status === filter);
+  const pendingCount = reminders.filter(r => r.status === 'pending').length;
+  const doneCount    = reminders.filter(r => r.status === 'done').length;
+
+  return (
+    <div className="flex-1 min-w-0 min-h-0 overflow-y-auto">
+      <div className="flex flex-col gap-5 p-6">
+
+        {/* ── Header ──────────────────────────────────────────────────── */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-base font-bold text-white/85"
+                style={{ fontFamily: "'Space Mono', monospace" }}>
+              Reminders
+            </h1>
+            <p className="text-xs text-white/30 mt-0.5">
+              {pendingCount} pending · {doneCount} completed
+            </p>
+          </div>
+          {doneCount > 0 && (
+            <button onClick={clearDone} className="btn-ghost text-xs py-1.5 px-3">
+              Clear Done
+            </button>
+          )}
+        </div>
+
+        {/* ── Add New ──────────────────────────────────────────────────── */}
+        <div className="card flex flex-col gap-3">
+          <p className="text-[10px] text-white/30 uppercase tracking-widest"
+             style={{ fontFamily: "'Space Mono', monospace" }}>
+            New Reminder
+          </p>
+
+          <textarea
+            placeholder="What do you need to remember?"
+            value={newText}
+            onChange={e => setNewText(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), add())}
+            rows={2}
+            className="input-field resize-none"
+          />
+
+          <div className="flex gap-2 flex-wrap items-center">
+            <input
+              type="datetime-local"
+              value={newDate}
+              onChange={e => setNewDate(e.target.value)}
+              className="input-field flex-1 min-w-[160px]"
+            />
+
+            {/* Priority selector */}
+            <div className="flex gap-1.5">
+              {(['low', 'medium', 'high'] as Priority[]).map(p => (
+                <button
+                  key={p}
+                  onClick={() => setNewPriority(p)}
+                  className="text-xs px-3 py-1.5 rounded-lg border capitalize transition-all"
+                  style={{
+                    background: newPriority === p ? `${PRIORITY_CONFIG[p].color}18` : 'transparent',
+                    border: `1px solid ${newPriority === p ? PRIORITY_CONFIG[p].color + '50' : 'rgba(255,255,255,0.08)'}`,
+                    color: newPriority === p ? PRIORITY_CONFIG[p].color : 'rgba(255,255,255,0.4)',
+                    fontFamily: "'DM Sans', sans-serif",
+                  }}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+
+            <button onClick={add} className="btn-primary whitespace-nowrap">
+              + Add
+            </button>
+          </div>
+        </div>
+
+        {/* ── Filter Tabs ──────────────────────────────────────────────── */}
+        <div className="flex gap-1 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+          {(['all', 'pending', 'done'] as const).map(f => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className="flex-1 py-1.5 text-xs font-medium rounded-lg capitalize transition-all"
+              style={{
+                background: filter === f ? 'rgba(255,255,255,0.07)' : 'transparent',
+                color: filter === f ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.3)',
+                fontFamily: "'DM Sans', sans-serif",
+              }}
+            >
+              {f} {f === 'pending' ? `(${pendingCount})` : f === 'done' ? `(${doneCount})` : `(${reminders.length})`}
+            </button>
+          ))}
+        </div>
+
+        {/* ── List ─────────────────────────────────────────────────────── */}
+        {filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="text-4xl mb-3 animate-float">🔔</div>
+            <p className="text-sm text-white/40 mb-1">No reminders here</p>
+            <p className="text-xs text-white/20">Add one above to get started</p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2.5">
+            {filtered.map(reminder => (
+              <ReminderCard
+                key={reminder.id}
+                reminder={reminder}
+                onToggle={toggle}
+                onDelete={remove}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

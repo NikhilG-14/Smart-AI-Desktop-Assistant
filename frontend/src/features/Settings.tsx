@@ -1,52 +1,243 @@
-import React from 'react';
-import { Bell, Moon, Volume2, Shield } from 'lucide-react';
+import { useState } from 'react';
 
-export const Settings: React.FC = () => {
-    return (
-        <div className="w-full h-full overflow-y-auto">
-            <h1 className="text-3xl font-bold mb-8 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">Settings</h1>
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-            <div className="space-y-6 max-w-2xl">
-                {/* Profile */}
-                <div className="acrylic p-6 rounded-xl flex items-center gap-4">
-                    <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-cyan-500 to-purple-500 flex items-center justify-center text-2xl font-bold">
-                        U
-                    </div>
-                    <div>
-                        <h2 className="text-xl font-bold">User Profile</h2>
-                        <p className="text-gray-400 text-sm">Manage your personal information</p>
-                    </div>
-                    <button className="ml-auto px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition text-sm">Edit</button>
-                </div>
+interface ToggleProps {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  color?: string;
+}
 
-                {/* Settings Groups */}
-                <div className="grid grid-cols-1 gap-4">
-                    <SettingItem icon={Volume2} title="Voice & Sound" desc="Output volume, input sensitivity" />
-                    <SettingItem icon={Moon} title="Appearance" desc="Theme, acrylic effects, scaling" />
-                    <SettingItem icon={Bell} title="Notifications" desc="Do not disturb, priority alerts" />
-                    <SettingItem icon={Shield} title="Privacy & Security" desc="Data retention, model permissions" />
-                </div>
+interface SettingRowProps {
+  label: string;
+  description?: string;
+  children: React.ReactNode;
+}
 
-                <div className="mt-8 pt-8 border-t border-gray-800 text-center">
-                    <p className="text-xs text-gray-600">A.D.A Version 2.0.0 (Alpha)</p>
-                    <p className="text-xs text-gray-700 mt-1">System ID: 8X-9920-DELTA</p>
-                </div>
-            </div>
-        </div>
-    );
-};
+// ─── Toggle Switch ────────────────────────────────────────────────────────────
 
-const SettingItem = ({ icon: Icon, title, desc }: any) => (
-    <div className="acrylic p-4 rounded-xl flex items-center gap-4 cursor-pointer hover:bg-white/5 transition">
-        <div className="p-3 rounded-lg bg-gray-800 text-cyan-400">
-            <Icon size={20} />
-        </div>
-        <div>
-            <h3 className="font-bold">{title}</h3>
-            <p className="text-gray-400 text-xs">{desc}</p>
-        </div>
-        <div className="ml-auto text-gray-600">
-            →
-        </div>
+function Toggle({ checked, onChange, color = '#67e8f9' }: ToggleProps) {
+  return (
+    <button
+      onClick={() => onChange(!checked)}
+      className="relative shrink-0 w-10 h-5 rounded-full transition-all duration-300"
+      style={{
+        background: checked ? `${color}40` : 'rgba(255,255,255,0.08)',
+        border: `1px solid ${checked ? color + '60' : 'rgba(255,255,255,0.1)'}`,
+      }}
+    >
+      <div
+        className="absolute top-0.5 w-4 h-4 rounded-full transition-all duration-300"
+        style={{
+          left: checked ? 'calc(100% - 18px)' : '2px',
+          background: checked ? color : 'rgba(255,255,255,0.3)',
+          boxShadow: checked ? `0 0 8px ${color}80` : 'none',
+        }}
+      />
+    </button>
+  );
+}
+
+// ─── Setting Row ──────────────────────────────────────────────────────────────
+
+function SettingRow({ label, description, children }: SettingRowProps) {
+  return (
+    <div className="flex items-center justify-between gap-4 py-3.5 border-b border-white/04 last:border-0">
+      <div className="flex-1 min-w-0">
+        <p className="text-sm text-white/75" style={{ fontFamily: "'DM Sans', sans-serif" }}>{label}</p>
+        {description && (
+          <p className="text-xs text-white/30 mt-0.5 leading-relaxed">{description}</p>
+        )}
+      </div>
+      <div className="shrink-0">{children}</div>
     </div>
-);
+  );
+}
+
+// ─── Section ──────────────────────────────────────────────────────────────────
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="card">
+      <p
+        className="text-[10px] font-semibold uppercase tracking-widest text-white/30 mb-1 pb-3 border-b border-white/05"
+        style={{ fontFamily: "'Space Mono', monospace" }}
+      >
+        {title}
+      </p>
+      {children}
+    </div>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
+export function Settings() {
+  // AI
+  const [aiModel, setAiModel]         = useState('claude-3-opus');
+  const [streamResponse, setStream]   = useState(true);
+  const [maxTokens, setMaxTokens]     = useState('2048');
+
+  // Notifications
+  const [timerAlerts, setTimerAlerts] = useState(true);
+  const [reminderAlerts, setReminderAlerts] = useState(true);
+  const [systemAlerts, setSystemAlerts]     = useState(false);
+  const [soundEnabled, setSoundEnabled]     = useState(true);
+
+  // Appearance
+  const [accentColor, setAccentColor] = useState('#67e8f9');
+  const [compactMode, setCompactMode] = useState(false);
+  const [animations, setAnimations]   = useState(true);
+
+  // Performance
+  const [autoStart, setAutoStart]     = useState(true);
+  const [startMinimized, setStartMin] = useState(false);
+  const [telemetry, setTelemetry]     = useState(false);
+
+  const ACCENT_COLORS = ['#67e8f9', '#a78bfa', '#34d399', '#f59e0b', '#fb923c', '#f87171', '#e879f9'];
+
+  const [saved, setSaved] = useState(false);
+  const handleSave = () => {
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  return (
+    <div className="flex-1 min-w-0 min-h-0 overflow-y-auto">
+      <div className="flex flex-col gap-5 p-6 max-w-2xl">
+
+        {/* ── Header ──────────────────────────────────────────────────── */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-base font-bold text-white/85"
+                style={{ fontFamily: "'Space Mono', monospace" }}>
+              Settings
+            </h1>
+            <p className="text-xs text-white/30 mt-0.5">Configure your AI assistant</p>
+          </div>
+          <button
+            onClick={handleSave}
+            className="btn-primary flex items-center gap-2"
+            style={saved ? { borderColor: '#34d39950', color: '#34d399', background: 'rgba(52,211,153,0.12)' } : {}}
+          >
+            {saved ? '✓ Saved!' : 'Save Changes'}
+          </button>
+        </div>
+
+        {/* ── AI Model ──────────────────────────────────────────────────── */}
+        <Section title="AI Configuration">
+          <SettingRow label="Model" description="The Claude model powering your assistant">
+            <select
+              value={aiModel}
+              onChange={e => setAiModel(e.target.value)}
+              className="input-field w-44"
+              style={{ background: 'rgba(255,255,255,0.05)' }}
+            >
+              <option value="claude-3-opus">Claude 3 Opus</option>
+              <option value="claude-3-sonnet">Claude 3 Sonnet</option>
+              <option value="claude-3-haiku">Claude 3 Haiku</option>
+              <option value="claude-sonnet-4">Claude Sonnet 4</option>
+            </select>
+          </SettingRow>
+
+          <SettingRow label="Stream Responses" description="Display AI responses as they're generated">
+            <Toggle checked={streamResponse} onChange={setStream} />
+          </SettingRow>
+
+          <SettingRow label="Max Response Tokens" description="Maximum length of AI responses">
+            <select
+              value={maxTokens}
+              onChange={e => setMaxTokens(e.target.value)}
+              className="input-field w-32"
+              style={{ background: 'rgba(255,255,255,0.05)' }}
+            >
+              <option value="1024">1,024</option>
+              <option value="2048">2,048</option>
+              <option value="4096">4,096</option>
+              <option value="8192">8,192</option>
+            </select>
+          </SettingRow>
+        </Section>
+
+        {/* ── Notifications ─────────────────────────────────────────────── */}
+        <Section title="Notifications">
+          <SettingRow label="Timer Alerts" description="Notify when timers complete">
+            <Toggle checked={timerAlerts} onChange={setTimerAlerts} color="#67e8f9" />
+          </SettingRow>
+          <SettingRow label="Reminder Alerts" description="Desktop notifications for reminders">
+            <Toggle checked={reminderAlerts} onChange={setReminderAlerts} color="#a78bfa" />
+          </SettingRow>
+          <SettingRow label="System Alerts" description="CPU/memory threshold warnings">
+            <Toggle checked={systemAlerts} onChange={setSystemAlerts} color="#f59e0b" />
+          </SettingRow>
+          <SettingRow label="Sound Effects" description="Play audio for alerts and events">
+            <Toggle checked={soundEnabled} onChange={setSoundEnabled} color="#34d399" />
+          </SettingRow>
+        </Section>
+
+        {/* ── Appearance ────────────────────────────────────────────────── */}
+        <Section title="Appearance">
+          <SettingRow label="Accent Color" description="Primary highlight color throughout the UI">
+            <div className="flex gap-1.5 items-center">
+              {ACCENT_COLORS.map(c => (
+                <button
+                  key={c}
+                  onClick={() => setAccentColor(c)}
+                  className="w-5 h-5 rounded-full transition-all hover:scale-110"
+                  style={{
+                    background: c,
+                    outline: accentColor === c ? `2px solid ${c}` : 'none',
+                    outlineOffset: '2px',
+                    opacity: accentColor === c ? 1 : 0.4,
+                  }}
+                />
+              ))}
+            </div>
+          </SettingRow>
+
+          <SettingRow label="Compact Mode" description="Reduce padding and spacing throughout">
+            <Toggle checked={compactMode} onChange={setCompactMode} />
+          </SettingRow>
+
+          <SettingRow label="Animations" description="Enable motion effects and transitions">
+            <Toggle checked={animations} onChange={setAnimations} />
+          </SettingRow>
+        </Section>
+
+        {/* ── App Behavior ──────────────────────────────────────────────── */}
+        <Section title="Application">
+          <SettingRow label="Launch at Login" description="Start VANINI when your computer boots">
+            <Toggle checked={autoStart} onChange={setAutoStart} />
+          </SettingRow>
+          <SettingRow label="Start Minimized" description="Launch in the system tray">
+            <Toggle checked={startMinimized} onChange={setStartMin} />
+          </SettingRow>
+          <SettingRow label="Send Usage Data" description="Help improve VANINI with anonymous analytics">
+            <Toggle checked={telemetry} onChange={setTelemetry} color="#f87171" />
+          </SettingRow>
+        </Section>
+
+        {/* ── About ─────────────────────────────────────────────────────── */}
+        <div
+          className="rounded-2xl p-4 flex items-center justify-between"
+          style={{
+            background: 'rgba(255,255,255,0.02)',
+            border: '1px solid rgba(255,255,255,0.05)',
+          }}
+        >
+          <div>
+            <p className="text-sm font-semibold text-white/60" style={{ fontFamily: "'Space Mono', monospace" }}>
+              VANINI Desktop
+            </p>
+            <p className="text-xs text-white/25 mt-0.5">
+              Built with Electron · React · TypeScript · Tailwind
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <span className="badge badge-cyan">Up to date</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

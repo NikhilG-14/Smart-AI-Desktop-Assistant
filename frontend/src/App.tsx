@@ -6,54 +6,39 @@ import Timers from './features/Timers';
 import { Dashboard } from './features/Dashboard';
 import { Settings } from './features/Settings';
 
-type Tab = 'dashboard' | 'chat' | 'timers' | 'reminders' | 'settings';
+export type Tab = 'dashboard' | 'chat' | 'timers' | 'reminders' | 'settings';
 
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
 
   return (
-    <div className="w-screen h-screen flex overflow-hidden p-4 gap-4 bg-black">
-      {/* Sidebar */}
+    <div className="w-screen h-screen flex overflow-hidden bg-[#080b12] font-sans">
+
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+     <main className="relative flex-1 flex min-w-0 h-full overflow-hidden">
 
-      {/* Main Content Area */}
-      <div className="flex-1 relative flex flex-col min-w-0">
-        {/* Background blobs for aesthetics */}
-        <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-cyan-700/20 rounded-full blur-[100px] -z-10" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-purple-700/20 rounded-full blur-[100px] -z-10" />
+        {/* Ambient depth blobs */}
+        <div aria-hidden="true" className="pointer-events-none absolute -top-40 -left-20 w-[600px] h-[600px] rounded-full -z-0"
+          style={{ background: 'radial-gradient(circle, rgba(34,211,238,0.07) 0%, transparent 70%)', filter: 'blur(60px)' }} />
+        <div aria-hidden="true" className="pointer-events-none absolute -bottom-40 -right-20 w-[600px] h-[600px] rounded-full -z-0"
+          style={{ background: 'radial-gradient(circle, rgba(129,140,248,0.07) 0%, transparent 70%)', filter: 'blur(60px)' }} />
 
-        <div className="flex-1 w-full relative flex flex-col">
-          {activeTab === 'dashboard' && (
-            <div className="flex-1 flex overflow-hidden">
-              <Dashboard />
-            </div>
-          )}
+        {/* Floor plane — subtle perspective grid */}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-0" style={{
+          backgroundImage: `linear-gradient(rgba(34,211,238,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(34,211,238,0.03) 1px, transparent 1px)`,
+          backgroundSize: '48px 48px',
+          maskImage: 'radial-gradient(ellipse at 50% 120%, black 0%, transparent 70%)'
+        }} />
 
-          {activeTab === 'chat' && (
-            <div className="flex-1 flex overflow-hidden">
-              <ChatInterface />
-            </div>
-          )}
-
-          {activeTab === 'reminders' && (
-            <div className="flex-1 flex overflow-hidden">
-              <Reminders />
-            </div>
-          )}
-
-          {activeTab === 'timers' && (
-            <div className="flex-1 flex overflow-hidden">
-              <Timers />
-            </div>
-          )}
-
-          {activeTab === 'settings' && (
-            <div className="flex-1 flex overflow-hidden">
-              <Settings />
-            </div>
-          )}
+        {/* Content panel — CRITICAL layout classes preserved exactly */}
+        <div className="flex min-h-0 w-full h-full overflow-hidden z-10">
+          {activeTab === 'dashboard'  && <Dashboard />}
+          {activeTab === 'chat'       && <ChatInterface />}
+          {activeTab === 'reminders'  && <Reminders />}
+          {activeTab === 'timers'     && <Timers />}
+          {activeTab === 'settings'   && <Settings />}
         </div>
-      </div>
+      </main>
     </div>
   );
 }
