@@ -1,78 +1,108 @@
-import { app, BrowserWindow, ipcMain, shell, globalShortcut, systemPreferences } from 'electron';
+import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
-// The Main Process
-// This controls the lifecycle of the application and native OS interactions.
+// ESM compatibility
+const __filename = fileURLToPath(import.meta.url);
+const __dirname  = path.dirname(__filename);
+
+// ─── Environment ──────────────────────────────────────────────────────────────
+
+const isDev  = process.env.NODE_ENV === 'development';
+const DEV_URL = 'http://localhost:5173';
+
+// ─── Window Reference ─────────────────────────────────────────────────────────
 
 let mainWindow: BrowserWindow | null = null;
 
-function createWindow() {
+// ─── Create Window ────────────────────────────────────────────────────────────
+
+function createWindow(): void {
   mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
-    title: 'VANINI',
-    frame: true, // We can make this false for a custom UI later
+    // ── Size ────────────────────────────────────────────────────────────────
+    width:     1280,
+    height:    800,
+    minWidth:  900,    // Prevents layout from breaking at small widths
+    minHeight: 600,
+
+    // ── Appearance ──────────────────────────────────────────────────────────
+    // Match bg-[#080b12] — eliminates white flash before React mounts
+    backgroundColor: '#080b12',
+
+    // Set to false and build your own titlebar in React for a seamless look,
+    // or keep true for native OS chrome.
+    frame:     true,
+
+    // macOS: hides native traffic lights so you can render custom ones
+    // titleBarStyle: 'hiddenInset',
+
+    // ── Security / Web ──────────────────────────────────────────────────────
     webPreferences: {
-      nodeIntegration: true,
+      // SECURITY: never enable nodeIntegration in production
+      nodeIntegration:  false,
+      // SECURITY: always enable contextIsolation
       contextIsolation: true,
+      // Path to your preload script — exposes safe APIs to renderer
       preload: path.join(__dirname, 'preload.js'),
+      // Allow DevTools in dev
+      devTools: isDev,
+      // Disable web security only if you absolutely must (avoid in prod)
+      webSecurity: true,
     },
-    titleBarStyle: 'hiddenInset', // Mac style
-    backgroundColor: '#000000',
+
+    // ── Show only when ready ─────────────────────────────────────────────
+    show: false,
   });
 
-  // Load the React app
-  // In dev: load from local Vite server
-  // In prod: load from index.html
-  const isDev = process.env.NODE_ENV === 'development';
+  // Show window once DOM is ready — prevents visual flash
+  mainWindow.once('ready-to-show', () => {
+    mainWindow?.show();
+  });
 
+  // Load app
   if (isDev) {
-    mainWindow.loadURL('http://localhost:5173');
-    mainWindow.webContents.openDevTools();
+    mainWindow.loadURL(DEV_URL);
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }
 
-  mainWindow.on('closed', () => {
-    mainWindow = null;
-  });
-
-  // Open external links in default browser
+  // Open external links in OS browser, not Electron window
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
     return { action: 'deny' };
   });
 
-  // Global Shortcut for Background Activation
-  globalShortcut.register('CommandOrControl+Shift+Space', () => {
-    if (mainWindow) {
-      mainWindow.show();
-      mainWindow.focus();
-      mainWindow.webContents.send('activate-mic');
-    }
-  });
+  mainWindow.on('closed', () => { mainWindow = null; });
 }
 
-app.whenReady().then(async () => {
-  if (process.platform === 'darwin') {
-    const status = await systemPreferences.askForMediaAccess('microphone');
-    console.log('Microphone access:', status);
-  }
+// ─── App Lifecycle ────────────────────────────────────────────────────────────
+
+app.whenReady().then(() => {
   createWindow();
+
+  // macOS: re-create window on dock click if none open
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  });
 });
 
-app.on('will-quit', () => {
-  globalShortcut.unregisterAll();
-});
-
+// Quit when all windows closed (except macOS)
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
+  if (process.platform !== 'darwin') app.quit();
 });
 
-app.on('activate', () => {
-  if (mainWindow === null) {
-    createWindow();
+// ─── IPC Handlers ─────────────────────────────────────────────────────────────
+// Add your main-process IPC handlers here.
+// Example: expose system info, file system access, etc.
+
+ipcMain.handle('app:version', () => app.getVersion());
+
+ipcMain.handle('window:minimize', () => mainWindow?.minimize());
+ipcMain.handle('window:maximize', () => {
+  if (mainWindow?.isMaximized()) {
+    mainWindow.unmaximize();
+  } else {
+    mainWindow?.maximize();
   }
 });
+ipcMain.handle('window:close', () => mainWindow?.close());
