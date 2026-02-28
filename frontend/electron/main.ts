@@ -1,14 +1,9 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import path from 'path';
-import { fileURLToPath } from 'url';
-
-// ESM compatibility
-const __filename = fileURLToPath(import.meta.url);
-const __dirname  = path.dirname(__filename);
 
 // ─── Environment ──────────────────────────────────────────────────────────────
 
-const isDev  = process.env.NODE_ENV === 'development';
+const isDev = process.env.NODE_ENV === 'development';
 const DEV_URL = 'http://localhost:5173';
 
 // ─── Window Reference ─────────────────────────────────────────────────────────
@@ -20,9 +15,9 @@ let mainWindow: BrowserWindow | null = null;
 function createWindow(): void {
   mainWindow = new BrowserWindow({
     // ── Size ────────────────────────────────────────────────────────────────
-    width:     1280,
-    height:    800,
-    minWidth:  900,    // Prevents layout from breaking at small widths
+    width: 1280,
+    height: 800,
+    minWidth: 900,    // Prevents layout from breaking at small widths
     minHeight: 600,
 
     // ── Appearance ──────────────────────────────────────────────────────────
@@ -31,7 +26,7 @@ function createWindow(): void {
 
     // Set to false and build your own titlebar in React for a seamless look,
     // or keep true for native OS chrome.
-    frame:     true,
+    frame: true,
 
     // macOS: hides native traffic lights so you can render custom ones
     // titleBarStyle: 'hiddenInset',
@@ -39,7 +34,7 @@ function createWindow(): void {
     // ── Security / Web ──────────────────────────────────────────────────────
     webPreferences: {
       // SECURITY: never enable nodeIntegration in production
-      nodeIntegration:  false,
+      nodeIntegration: false,
       // SECURITY: always enable contextIsolation
       contextIsolation: true,
       // Path to your preload script — exposes safe APIs to renderer

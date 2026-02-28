@@ -1,9 +1,10 @@
-import { app, BrowserWindow, ipcMain, shell } from 'electron';
-import path from 'path';
-import { fileURLToPath } from 'url';
-// ESM compatibility
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const electron_1 = require("electron");
+const path_1 = __importDefault(require("path"));
 // ─── Environment ──────────────────────────────────────────────────────────────
 const isDev = process.env.NODE_ENV === 'development';
 const DEV_URL = 'http://localhost:5173';
@@ -11,7 +12,7 @@ const DEV_URL = 'http://localhost:5173';
 let mainWindow = null;
 // ─── Create Window ────────────────────────────────────────────────────────────
 function createWindow() {
-    mainWindow = new BrowserWindow({
+    mainWindow = new electron_1.BrowserWindow({
         // ── Size ────────────────────────────────────────────────────────────────
         width: 1280,
         height: 800,
@@ -32,7 +33,7 @@ function createWindow() {
             // SECURITY: always enable contextIsolation
             contextIsolation: true,
             // Path to your preload script — exposes safe APIs to renderer
-            preload: path.join(__dirname, 'preload.js'),
+            preload: path_1.default.join(__dirname, 'preload.js'),
             // Allow DevTools in dev
             devTools: isDev,
             // Disable web security only if you absolutely must (avoid in prod)
@@ -50,35 +51,35 @@ function createWindow() {
         mainWindow.loadURL(DEV_URL);
     }
     else {
-        mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+        mainWindow.loadFile(path_1.default.join(__dirname, '../dist/index.html'));
     }
     // Open external links in OS browser, not Electron window
     mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-        shell.openExternal(url);
+        electron_1.shell.openExternal(url);
         return { action: 'deny' };
     });
     mainWindow.on('closed', () => { mainWindow = null; });
 }
 // ─── App Lifecycle ────────────────────────────────────────────────────────────
-app.whenReady().then(() => {
+electron_1.app.whenReady().then(() => {
     createWindow();
     // macOS: re-create window on dock click if none open
-    app.on('activate', () => {
-        if (BrowserWindow.getAllWindows().length === 0)
+    electron_1.app.on('activate', () => {
+        if (electron_1.BrowserWindow.getAllWindows().length === 0)
             createWindow();
     });
 });
 // Quit when all windows closed (except macOS)
-app.on('window-all-closed', () => {
+electron_1.app.on('window-all-closed', () => {
     if (process.platform !== 'darwin')
-        app.quit();
+        electron_1.app.quit();
 });
 // ─── IPC Handlers ─────────────────────────────────────────────────────────────
 // Add your main-process IPC handlers here.
 // Example: expose system info, file system access, etc.
-ipcMain.handle('app:version', () => app.getVersion());
-ipcMain.handle('window:minimize', () => mainWindow?.minimize());
-ipcMain.handle('window:maximize', () => {
+electron_1.ipcMain.handle('app:version', () => electron_1.app.getVersion());
+electron_1.ipcMain.handle('window:minimize', () => mainWindow?.minimize());
+electron_1.ipcMain.handle('window:maximize', () => {
     if (mainWindow?.isMaximized()) {
         mainWindow.unmaximize();
     }
@@ -86,5 +87,5 @@ ipcMain.handle('window:maximize', () => {
         mainWindow?.maximize();
     }
 });
-ipcMain.handle('window:close', () => mainWindow?.close());
+electron_1.ipcMain.handle('window:close', () => mainWindow?.close());
 //# sourceMappingURL=main.js.map

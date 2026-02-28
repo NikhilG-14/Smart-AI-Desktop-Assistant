@@ -75,8 +75,9 @@ class SystemActions:
                 "whatsapp": "https://web.whatsapp.com"
             }
 
+            import webbrowser
+
             if lower_app in web_apps:
-                import webbrowser
                 webbrowser.open(web_apps[lower_app])
                 response = f"Opening {app_name}..."
             else:
