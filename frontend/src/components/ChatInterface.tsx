@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
-import { Send, Mic, MicOff, Power, Activity, Cpu, Wifi, Video, VideoOff, MessageSquare } from 'lucide-react';
+import { Send, Mic, MicOff, Power, Activity, Wifi, VideoOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface IWindow extends Window {
@@ -18,64 +18,132 @@ interface Message {
     timestamp: Date;
 }
 
-// ── Corner brackets ──────────────────────────────────────────────────────────
-const Brackets = ({ c = '#22d3ee' }: { c?: string }) => (
-    <>
-        {[['top-0 left-0', 'M0 6 L0 0 L6 0'], ['top-0 right-0', 'M10 6 L10 0 L4 0'],
-          ['bottom-0 left-0', 'M0 4 L0 10 L6 10'], ['bottom-0 right-0', 'M10 4 L10 10 L4 10']
-        ].map(([pos, d]) => (
-            <svg key={pos} className={`absolute ${pos} w-3 h-3 z-10`} viewBox="0 0 10 10" fill="none">
-                <path d={d} stroke={c} strokeWidth="1.2" strokeOpacity="0.5" />
-            </svg>
-        ))}
-    </>
-);
+// ── Colour tokens ─────────────────────────────────────────────────────────────
+const C = {
+    mahogany:  '#5C3D2E',
+    cream:     '#FAF7F2',
+    warmWhite: '#F5F1EA',
+    parchment: '#EDE8DF',
+    sand:      '#D4CAB8',
+    taupe:     '#B8A99A',
+    bronze:    '#8B6E52',
+    charcoal:  'rgba(58,53,48,0.92)',
+    gold:      '#C9933A',
+    goldLight: '#E8C97A',
+    sage:      '#7A9E8A',
+    mutedRose: '#C4897A',
+} as const;
 
-// ── Thin progress bar ────────────────────────────────────────────────────────
-const Bar = ({ label, pct, color }: { label: string; pct: number; color: string }) => (
-    <div className="space-y-1">
-        <div className="flex justify-between">
-            <span style={{ fontSize: 9, color: '#475569', fontFamily: 'monospace', letterSpacing: '0.15em', textTransform: 'uppercase' }}>{label}</span>
-            <span style={{ fontSize: 9, color, fontFamily: 'monospace', fontWeight: 700 }}>{pct}%</span>
+// ── Animated progress bar ────────────────────────────────────────────────────
+const StatBar = ({ label, pct, color }: { label: string; pct: number; color: string }) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 9, color: 'rgba(250,247,242,0.3)', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
+                {label}
+            </span>
+            <span style={{ fontSize: 9, color, fontWeight: 600 }}>{pct}%</span>
         </div>
-        <div style={{ height: 2, background: 'rgba(255,255,255,0.05)', borderRadius: 2, overflow: 'hidden' }}>
-            <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }}
+        <div style={{ height: 2, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
+            <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${pct}%` }}
                 transition={{ duration: 1.6, ease: [0.16, 1, 0.3, 1] }}
-                style={{ height: '100%', background: color, boxShadow: `0 0 6px ${color}`, borderRadius: 2 }} />
+                style={{ height: '100%', background: color, borderRadius: 2 }}
+            />
         </div>
     </div>
 );
 
-// ── Panel wrapper ────────────────────────────────────────────────────────────
-const Panel = ({ children, className = '', style = {}, accent = '#22d3ee' }:
-    { children: React.ReactNode; className?: string; style?: React.CSSProperties; accent?: string }) => (
-    <div className={`relative overflow-hidden rounded-xl ${className}`} style={{
-        background: 'linear-gradient(160deg,rgba(13,20,38,0.97),rgba(6,10,22,0.99))',
-        border: `1px solid ${accent}18`,
-        boxShadow: `inset 0 1px 0 rgba(255,255,255,0.02)`,
-        ...style
+// ── Info stat card ────────────────────────────────────────────────────────────
+const InfoCard = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) => (
+    <div style={{
+        background: 'rgba(255,255,255,0.04)',
+        border: '1px solid rgba(255,255,255,0.07)',
+        borderRadius: 10, padding: '10px 12px',
     }}>
-        <Brackets c={accent} />
-        {children}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 5 }}>
+            {icon}
+            <span style={{ fontSize: 8, color: 'rgba(250,247,242,0.25)', letterSpacing: '0.2em', textTransform: 'uppercase' }}>{label}</span>
+        </div>
+        <span style={{ fontSize: 16, fontWeight: 500, color: C.cream }}>{value}</span>
     </div>
 );
 
 // ════════════════════════════════════════════════════════════════════════════
 export function ChatInterface() {
     const [messages, setMessages] = useState<Message[]>([
-        { id: '0', type: 'bot', text: 'Vanilla Artificial Neural Intelligence Network Initialized. How may I assist you today?', timestamp: new Date() }
+        { id: '0', type: 'bot', text: 'Vanilla Artificial Neural Intelligence Network initialized. How may I assist you today?', timestamp: new Date() }
     ]);
-    const [inputValue, setInputValue] = useState('');
-    const [isThinking, setIsThinking] = useState(false);
+    const [inputValue, setInputValue]     = useState('');
+    const [isThinking, setIsThinking]     = useState(false);
     const [cameraActive, setCameraActive] = useState(true);
-    const videoRef = useRef<HTMLVideoElement>(null);
-    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const [camSeconds, setCamSeconds]     = useState(0);
+
+    const videoRef        = useRef<HTMLVideoElement>(null);
+    const messagesEndRef  = useRef<HTMLDivElement>(null);
     const shouldListenRef = useRef(false);
 
-    const { transcript, finalTranscript, listening, resetTranscript, browserSupportsSpeechRecognition } = useSpeechRecognition();
+    const { transcript, finalTranscript, listening, resetTranscript, browserSupportsSpeechRecognition } =
+        useSpeechRecognition();
 
     useEffect(() => { if (transcript) setInputValue(transcript); }, [transcript]);
     useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+
+    // Camera init
+    useEffect(() => {
+        if (!cameraActive || !videoRef.current) return;
+        navigator.mediaDevices
+            ?.getUserMedia({ video: { facingMode: 'user' } })
+            .then(stream => { if (videoRef.current) videoRef.current.srcObject = stream; })
+            .catch(() => {});
+    }, [cameraActive]);
+
+    // Cam timecode tick
+    useEffect(() => {
+        const id = setInterval(() => setCamSeconds(s => s + 1), 1000);
+        return () => clearInterval(id);
+    }, []);
+
+    // Keyword shortcuts
+    useEffect(() => {
+        if (!listening || !transcript) return;
+        const kw = ['pause','unpause','resume','stop','play','next song','previous song']
+            .find(k => transcript.toLowerCase().includes(k));
+        if (kw) { sendMessage(kw); resetTranscript(); }
+    }, [transcript, listening]);
+
+    // Final transcript → send
+    useEffect(() => {
+        if (finalTranscript) { sendMessage(finalTranscript.trim().toLowerCase()); resetTranscript(); }
+    }, [finalTranscript]);
+
+    // Auto-restart listening
+    useEffect(() => {
+        if (!listening && shouldListenRef.current) {
+            const t = setTimeout(() => SpeechRecognition.startListening({ continuous: true, language: 'en-IN' }), 100);
+            return () => clearTimeout(t);
+        }
+    }, [listening]);
+
+    // Electron mic hotkey
+    useEffect(() => {
+        window.electron?.receive('activate-mic', () => {
+            if (!shouldListenRef.current) {
+                shouldListenRef.current = true;
+                if (!listening) SpeechRecognition.startListening({ continuous: false, language: 'en-IN' });
+            }
+        });
+    }, []);
+
+    // ── Helpers ──────────────────────────────────────────────────────────
+    const fmtTime = (d: Date) =>
+        d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+    const fmtCam = () => {
+        const m = String(Math.floor(camSeconds / 60)).padStart(2, '0');
+        const s = String(camSeconds % 60).padStart(2, '0');
+        return `${m}:${s}`;
+    };
 
     const toggleListening = () => {
         if (!browserSupportsSpeechRecognition) { alert('Voice input not supported.'); return; }
@@ -90,7 +158,9 @@ export function ChatInterface() {
         const voices = window.speechSynthesis.getVoices();
         const isHindi = /[\u0900-\u097F]/.test(text);
         let v = isHindi ? voices.find(v => v.lang.includes('hi-IN') || v.name.includes('Hindi')) : undefined;
-        if (!v) v = voices.find(v => ['Samantha','Victoria','Karen','Moira','Tessa','Zira','Google UK English Female','Google US English'].some(n => v.name.includes(n)));
+        if (!v) v = voices.find(v =>
+            ['Samantha','Victoria','Karen','Moira','Tessa','Zira','Google UK English Female','Google US English']
+            .some(n => v.name.includes(n)));
         if (!v) v = voices.find(v => v.lang.includes('en-US') || v.lang.includes('en-GB'));
         if (v) u.voice = v;
         u.rate = 1; u.pitch = 1;
@@ -104,306 +174,501 @@ export function ChatInterface() {
         setInputValue('');
         setIsThinking(true);
         try {
-            const res = await fetch('http://127.0.0.1:8000/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: text }) });
+            const res = await fetch('http://127.0.0.1:8000/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: text }),
+            });
             const data = await res.json();
             if (data.ignored) { setMessages(p => p.filter(m => m.id !== uid)); setIsThinking(false); return; }
             const botText = data.response || 'No response received.';
             setMessages(p => [...p, { id: Date.now().toString(), type: 'bot', text: botText, timestamp: new Date() }]);
             speakMessage(botText);
         } catch {
-            setMessages(p => [...p, { id: Date.now().toString(), type: 'bot', text: 'ERR: Connection to V.A.N.I.N.I. backend failed.', timestamp: new Date() }]);
+            setMessages(p => [...p, {
+                id: Date.now().toString(), type: 'bot',
+                text: 'Connection to V.A.N.I.N.I. backend failed. Please check the server.',
+                timestamp: new Date(),
+            }]);
         } finally { setIsThinking(false); }
     };
 
-    useEffect(() => {
-        if (!listening || !transcript) return;
-        const kw = ['pause','unpause','resume','stop','play','next song','previous song'].find(k => transcript.toLowerCase().includes(k));
-        if (kw) { sendMessage(kw); resetTranscript(); }
-    }, [transcript, listening]);
+    // Derived
+    const statusColor = isThinking ? C.gold : listening ? C.mutedRose : C.sage;
+    const statusLabel = isThinking ? 'Processing' : listening ? 'Listening' : 'Ready';
 
-    useEffect(() => {
-        if (finalTranscript) { sendMessage(finalTranscript.trim().toLowerCase()); resetTranscript(); }
-    }, [finalTranscript]);
-
-    useEffect(() => {
-        if (!listening && shouldListenRef.current) {
-            const t = setTimeout(() => SpeechRecognition.startListening({ continuous: true, language: 'en-IN' }), 100);
-            return () => clearTimeout(t);
-        }
-    }, [listening]);
-
-    useEffect(() => {
-        window.electron?.receive('activate-mic', () => {
-            if (!shouldListenRef.current) { shouldListenRef.current = true; if (!listening) SpeechRecognition.startListening({ continuous: false, language: 'en-IN' }); }
-        });
-    }, []);
-
-    // Reactive accent color
-    const accent = isThinking ? '#818cf8' : listening ? '#fb7185' : '#22d3ee';
-
+    // ════════════════════════════════════════════════════════════════════
     return (
-        /*
-         * KEY LAYOUT FIX:
-         * - h-full + min-h-0 = fills parent without overflowing it
-         * - overflow-hidden on root = nothing escapes the box
-         * - sidebar uses flex-col with overflow-hidden, panels use fixed heights that add up correctly
-         */
-        <div className="h-full w-full flex gap-3 p-3 overflow-hidden" style={{ fontFamily: "'JetBrains Mono','Fira Code','Courier New',monospace" }}>
+        <>
+            {/* Fonts + scoped scrollbar styles */}
+            <style>{`
+                @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap');
+                .v-scroll::-webkit-scrollbar { width: 3px; }
+                .v-scroll::-webkit-scrollbar-track { background: transparent; }
+                .v-scroll::-webkit-scrollbar-thumb { background: ${C.sand}; border-radius: 4px; }
+                .v-scroll { scrollbar-width: thin; scrollbar-color: ${C.sand} transparent; }
+                .v-input { font-family: 'DM Sans', sans-serif; }
+                .v-input::placeholder { color: ${C.taupe}; }
+            `}</style>
 
-            {/* ══ SIDEBAR ═══════════════════════════════════════════════ */}
             {/*
-             * CRITICAL: sidebar must NOT overflow.
-             * We use flex-col with NO scroll — every child has a fixed/controlled size.
-             * Heights: core=210px, cam=120px, diag=auto, gaps=3×12=36 → total ~366px + diag
-             * This fits within typical screen heights (768px+).
+             * ROOT div — fills 100% of whatever App.tsx gives us.
+             * NO own background, NO centering, NO fixed sizes.
+             * flex row: [chat area flex-1] [VANINI right panel 230px]
              */}
-            <div className="w-[240px] flex-shrink-0 flex flex-col gap-2.5 h-full overflow-hidden">
+            <div style={{
+                display: 'flex',
+                width: '100%', height: '100%',
+                overflow: 'hidden',
+                fontFamily: "'DM Sans', sans-serif",
+                padding: '24px',
+                gap: '24px',
+            }}>
 
-                {/* Core Identity — fixed height */}
-                <Panel accent={accent} className="h-48 flex-shrink-0 p-4 flex flex-col items-center justify-between">
-                    {/* Top label row */}
-                    <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: 8, color: '#334155', letterSpacing: '0.3em', textTransform: 'uppercase' }}>SYS-CORE</span>
-                        <span style={{ fontSize: 7, color: accent, background: `${accent}12`, border: `1px solid ${accent}25`, padding: '2px 6px', borderRadius: 3, letterSpacing: '0.25em', textTransform: 'uppercase' }}>
-                            {isThinking ? 'PROC' : listening ? 'LISTEN' : 'READY'}
-                        </span>
-                    </div>
+                {/* ══ CHAT AREA ════════════════════════════════════════════ */}
+                <div style={{
+                    flex: 1, minWidth: 0,
+                    display: 'flex', flexDirection: 'column',
+                    background: C.warmWhite,
+                    position: 'relative', overflow: 'hidden',
+                    borderRadius: '16px',
+                    border: `1px solid ${C.parchment}`,
+                    boxShadow: '0 4px 24px rgba(0,0,0,0.15)',
+                }}>
+                    {/* Crosshatch texture */}
+                    <div aria-hidden="true" style={{
+                        position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.45,
+                        backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%238B6E52' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/svg%3E")`,
+                    }} />
 
-                    {/* Orb — compact 80px */}
-                    <div style={{ position: 'relative', width: 80, height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        {/* Hex */}
-                        <svg viewBox="0 0 100 100" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.2 }}>
-                            <polygon points="50,4 93,27 93,73 50,96 7,73 7,27" fill="none" stroke={accent} strokeWidth="1" />
-                        </svg>
-                        {/* Spin ring */}
-                        <motion.div animate={{ rotate: 360 }} transition={{ duration: 9, repeat: Infinity, ease: 'linear' }}
-                            style={{ position: 'absolute', inset: 6, borderRadius: '50%', border: `1px solid ${accent}18`, borderTopColor: `${accent}80` }} />
-                        {/* Core */}
-                        <motion.div
-                            animate={{ scale: isThinking ? [1, 1.2, 1] : [1, 1.07, 1] }}
-                            transition={{ duration: isThinking ? 0.65 : 2.5, repeat: Infinity, ease: 'easeInOut' }}
-                            style={{
-                                width: 38, height: 38, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                background: `radial-gradient(circle at 40% 35%, ${accent}28, transparent 70%)`,
-                                border: `1px solid ${accent}45`,
-                                boxShadow: `0 0 18px ${accent}22`,
-                                zIndex: 2
+                    {/* ── Header ── */}
+                    <header style={{
+                        flexShrink: 0,
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: '16px 24px 14px',
+                        borderBottom: `1px solid ${C.parchment}`,
+                        background: 'rgba(245,241,234,0.96)',
+                        backdropFilter: 'blur(8px)',
+                        position: 'relative', zIndex: 2,
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            {/* Animated orb avatar */}
+                            <div style={{
+                                width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
+                                border: `1.5px solid rgba(201,147,58,0.4)`,
+                                background: C.mahogany,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
                             }}>
-                            <Activity size={14} color={accent} />
-                        </motion.div>
-                    </div>
-
-                    {/* Wordmark */}
-                    <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: 13, fontWeight: 900, letterSpacing: '0.3em', textTransform: 'uppercase', color: accent, textShadow: `0 0 20px ${accent}50` }}>
-                            V.A.N.I.N.I.
-                        </div>
-                        <div style={{ fontSize: 7, color: '#1e293b', letterSpacing: '0.2em', marginTop: 3 }}>NEURAL INTERFACE v2.1</div>
-                    </div>
-                </Panel>
-
-                {/* Camera Feed — fixed height */}
-                <Panel accent="#fb718840" className="h-32 flex-shrink-0 relative">
-                    {/* REC badge */}
-                    <div style={{ position: 'absolute', top: 8, left: 10, zIndex: 10, display: 'flex', alignItems: 'center', gap: 5 }}>
-                        <motion.div animate={{ opacity: [1, 0.2, 1] }} transition={{ duration: 1.3, repeat: Infinity }}
-                            style={{ width: 6, height: 6, borderRadius: '50%', background: '#fb7185', boxShadow: '0 0 5px #fb7185' }} />
-                        <span style={{ fontSize: 7, color: '#fb718870', letterSpacing: '0.2em', textTransform: 'uppercase' }}>REC</span>
-                    </div>
-                    {/* Toggle button */}
-                    <button onClick={() => setCameraActive(p => !p)}
-                        style={{ position: 'absolute', top: 7, right: 8, zIndex: 10, background: 'rgba(0,0,0,0.45)', border: 'none', color: '#475569', cursor: 'pointer', borderRadius: 4, padding: 3, display: 'flex' }}>
-                        {cameraActive ? <Video size={11} /> : <VideoOff size={11} />}
-                    </button>
-                    {/* Feed */}
-                    {cameraActive
-                        ? <video ref={videoRef} autoPlay muted style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.65, filter: 'saturate(0.3) brightness(0.75)' }} />
-                        : <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                            <VideoOff size={16} color="#1e293b" />
-                            <span style={{ fontSize: 7, color: '#1e293b', letterSpacing: '0.2em' }}>FEED OFFLINE</span>
-                          </div>
-                    }
-                    {/* HUD overlay */}
-                    <div style={{ position: 'absolute', bottom: 6, left: 10, right: 10, display: 'flex', justifyContent: 'space-between', pointerEvents: 'none' }}>
-                        <span style={{ fontSize: 7, color: '#22d3ee28', fontFamily: 'monospace' }}>CAM-01</span>
-                        <span style={{ fontSize: 7, color: '#22d3ee28', fontFamily: 'monospace' }}>LIVE</span>
-                    </div>
-                </Panel>
-
-                {/* Diagnostics — flex-1 takes remaining space, never overflows */}
-                <Panel accent="#22d3ee" className="flex-1 min-h-0 p-3 flex flex-col gap-2.5">
-                    {/* Header */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <Cpu size={10} color="#22d3ee" />
-                            <span style={{ fontSize: 7, color: '#334155', letterSpacing: '0.25em', textTransform: 'uppercase' }}>Diagnostics</span>
-                        </div>
-                        <span style={{ fontSize: 7, color: '#22d3ee', background: '#22d3ee10', border: '1px solid #22d3ee22', padding: '2px 6px', borderRadius: 3, letterSpacing: '0.25em' }}>LIVE</span>
-                    </div>
-
-                    {/* Bars */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flexShrink: 0 }}>
-                        <Bar label="CPU Core 0" pct={42} color="#22d3ee" />
-                        <Bar label="CPU Core 1" pct={38} color="#818cf8" />
-                        <Bar label="Neural Eng." pct={89} color="#22d3ee" />
-                    </div>
-
-                    {/* Stats grid */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 'auto', paddingTop: 10, borderTop: '1px solid rgba(34,211,238,0.07)', flexShrink: 0 }}>
-                        {[
-                            { icon: <Wifi size={9} color="#22d3ee" />, label: 'Net', value: '2.4G', color: '#22d3ee' },
-                            { icon: <Activity size={9} color="#fb7185" />, label: 'Temp', value: '42°C', color: '#fb7185' },
-                        ].map(({ icon, label, value, color }) => (
-                            <div key={label}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 3 }}>
-                                    {icon}
-                                    <span style={{ fontSize: 7, color: '#334155', letterSpacing: '0.2em', textTransform: 'uppercase' }}>{label}</span>
-                                </div>
-                                <span style={{ fontSize: 15, fontWeight: 700, color, textShadow: `0 0 10px ${color}45` }}>{value}</span>
+                                <motion.div
+                                    animate={{ scale: isThinking ? [1, 1.25, 1] : [1, 1.07, 1] }}
+                                    transition={{ duration: isThinking ? 0.6 : 2.8, repeat: Infinity, ease: 'easeInOut' }}
+                                    style={{
+                                        width: 14, height: 14, borderRadius: '50%',
+                                        background: `radial-gradient(circle at 40% 35%, ${C.goldLight}, ${C.gold})`,
+                                    }}
+                                />
                             </div>
-                        ))}
-                    </div>
-                </Panel>
-            </div>
-
-            {/* ══ CHAT PANEL ════════════════════════════════════════════ */}
-            {/*
-             * flex:1 + minHeight:0 = takes all remaining space.
-             * flex-col inside with overflow-hidden — only the messages div scrolls.
-             */}
-            <Panel accent={accent} className="flex-1 min-w-0 min-h-0 flex flex-col">
-
-                {/* Top accent line */}
-                <div style={{ position: 'absolute', top: 0, left: '10%', right: '10%', height: 1, background: `linear-gradient(90deg,transparent,${accent}30,transparent)`, pointerEvents: 'none' }} />
-
-                {/* Header */}
-                <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 18px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div style={{ width: 28, height: 28, borderRadius: 8, background: `${accent}0d`, border: `1px solid ${accent}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            <MessageSquare size={13} color={accent} />
+                            <div>
+                                <div style={{
+                                    fontFamily: "'Cormorant Garamond', serif",
+                                    fontSize: 19, fontWeight: 500,
+                                    color: C.mahogany, letterSpacing: '0.02em', lineHeight: 1.2,
+                                }}>
+                                    Secure Channel
+                                </div>
+                                <div style={{ fontSize: 10, color: C.taupe, letterSpacing: '0.08em', marginTop: 1 }}>
+                                    Encrypted · AES-256 · {messages.length} transmissions
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <div style={{ fontSize: 11, fontWeight: 600, color: '#cbd5e1', letterSpacing: '0.08em' }}>Secure Communication Channel</div>
-                            <div style={{ fontSize: 7, color: '#1e293b', letterSpacing: '0.2em', marginTop: 2 }}>ENCRYPTED // TYPE-R // AES-256</div>
-                        </div>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                            <motion.div animate={{ opacity: [1, 0.2, 1] }} transition={{ duration: 1.8, repeat: Infinity }}
-                                style={{ width: 5, height: 5, borderRadius: '50%', background: accent, boxShadow: `0 0 5px ${accent}` }} />
-                            <span style={{ fontSize: 7, color: `${accent}70`, letterSpacing: '0.2em' }}>ONLINE</span>
-                        </div>
-                        <button style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 8px', borderRadius: 5, fontSize: 7, color: '#fb718860', border: '1px solid rgba(251,113,133,0.12)', background: 'transparent', cursor: 'pointer', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
-                            <Power size={9} />TERMINATE
-                        </button>
-                    </div>
-                </div>
 
-                {/* Messages — THIS is the only scrolling element */}
-                <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 flex flex-col gap-3.5"
-     style={{ scrollbarWidth: 'thin', scrollbarColor: `${accent}15 transparent` }}>
-                    <AnimatePresence initial={false}>
-                        {messages.map((msg) => (
-                            <motion.div key={msg.id}
-                                initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.22, ease: 'easeOut' }}
-                                style={{ display: 'flex', justifyContent: msg.type === 'user' ? 'flex-end' : 'flex-start' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <motion.div
+                                    animate={{ opacity: [1, 0.3, 1] }}
+                                    transition={{ duration: 1.8, repeat: Infinity }}
+                                    style={{ width: 6, height: 6, borderRadius: '50%', background: statusColor }}
+                                />
+                                <span style={{ fontSize: 10, color: C.taupe, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                                    {statusLabel}
+                                </span>
+                            </div>
+                            <button style={{
+                                display: 'flex', alignItems: 'center', gap: 5,
+                                padding: '5px 12px', borderRadius: 20,
+                                fontSize: 10, color: C.mutedRose,
+                                border: `1px solid rgba(196,137,122,0.3)`,
+                                background: 'transparent', cursor: 'pointer',
+                                letterSpacing: '0.06em', textTransform: 'uppercase',
+                                fontFamily: "'DM Sans', sans-serif",
+                            }}>
+                                <Power size={10} /> Terminate
+                            </button>
+                        </div>
+                    </header>
 
-                                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, maxWidth: '78%', flexDirection: msg.type === 'user' ? 'row-reverse' : 'row' }}>
+                    {/* ── Messages — only scrolling element ── */}
+                    <div
+                        className="v-scroll"
+                        style={{
+                            flex: 1, minHeight: 0, overflowY: 'auto',
+                            padding: '24px 28px',
+                            display: 'flex', flexDirection: 'column', gap: 20,
+                            position: 'relative', zIndex: 1,
+                        }}
+                    >
+                        <AnimatePresence initial={false}>
+                            {messages.map(msg => (
+                                <motion.div
+                                    key={msg.id}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -6 }}
+                                    transition={{ duration: 0.22, ease: 'easeOut' }}
+                                    style={{
+                                        display: 'flex', gap: 10, alignItems: 'flex-end',
+                                        flexDirection: msg.type === 'user' ? 'row-reverse' : 'row',
+                                    }}
+                                >
                                     {/* Avatar */}
-                                    <div style={{ width: 22, height: 22, borderRadius: 5, background: msg.type === 'bot' ? `${accent}0d` : 'rgba(71,85,105,0.15)', border: `1px solid ${msg.type === 'bot' ? `${accent}25` : 'rgba(71,85,105,0.22)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginBottom: 18 }}>
-                                        <span style={{ fontSize: 8, fontWeight: 700, color: msg.type === 'bot' ? accent : '#475569' }}>{msg.type === 'bot' ? 'V' : 'U'}</span>
+                                    <div style={{
+                                        width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        fontFamily: "'Cormorant Garamond', serif",
+                                        fontSize: 13, fontWeight: 600,
+                                        ...(msg.type === 'bot'
+                                            ? { background: C.mahogany, color: C.goldLight, border: `1.5px solid rgba(201,147,58,0.3)` }
+                                            : { background: C.parchment, color: C.bronze, border: `1.5px solid ${C.sand}` }
+                                        ),
+                                    }}>
+                                        {msg.type === 'bot' ? 'V' : 'U'}
                                     </div>
 
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: msg.type === 'user' ? 'flex-end' : 'flex-start' }}>
+                                    {/* Bubble + timestamp */}
+                                    <div style={{
+                                        display: 'flex', flexDirection: 'column', gap: 4,
+                                        alignItems: msg.type === 'user' ? 'flex-end' : 'flex-start',
+                                        maxWidth: '70%',
+                                    }}>
                                         <div style={{
-                                            padding: '10px 14px', borderRadius: 10, fontSize: 13, lineHeight: 1.6,
+                                            padding: '11px 16px', fontSize: 14, lineHeight: 1.65,
                                             ...(msg.type === 'bot'
-                                                ? { background: `${accent}07`, border: `1px solid ${accent}16`, color: '#94a3b8', borderTopLeftRadius: 3 }
-                                                : { background: 'rgba(129,140,248,0.07)', border: '1px solid rgba(129,140,248,0.17)', color: '#cbd5e1', borderTopRightRadius: 3 })
+                                                ? {
+                                                    background: '#FFFFFF',
+                                                    border: `1px solid ${C.parchment}`,
+                                                    color: C.charcoal,
+                                                    borderRadius: '16px 16px 16px 4px',
+                                                    boxShadow: '0 2px 12px rgba(28,20,16,0.06)',
+                                                }
+                                                : {
+                                                    background: C.mahogany,
+                                                    color: 'rgba(250,247,242,0.92)',
+                                                    borderRadius: '16px 16px 4px 16px',
+                                                    boxShadow: '0 2px 12px rgba(92,61,46,0.22)',
+                                                }
+                                            ),
                                         }}>
                                             {msg.text}
                                         </div>
-                                        <span style={{ fontSize: 7, color: '#1e293b', fontFamily: 'monospace', letterSpacing: '0.1em', paddingInline: 2 }}>
-                                            {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                                        <span style={{ fontSize: 10, color: C.taupe, letterSpacing: '0.04em', paddingInline: 4 }}>
+                                            {fmtTime(msg.timestamp)}
                                         </span>
                                     </div>
-                                </div>
-                            </motion.div>
-                        ))}
-                    </AnimatePresence>
+                                </motion.div>
+                            ))}
+                        </AnimatePresence>
 
-                    {/* Thinking dots */}
-                    {isThinking && (
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ display: 'flex', justifyContent: 'flex-start' }}>
-                            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8 }}>
-                                <div style={{ width: 22, height: 22, borderRadius: 5, background: 'rgba(129,140,248,0.08)', border: '1px solid rgba(129,140,248,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <span style={{ fontSize: 8, fontWeight: 700, color: '#818cf8' }}>V</span>
+                        {/* Thinking dots */}
+                        <AnimatePresence>
+                            {isThinking && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                                    style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}
+                                >
+                                    <div style={{
+                                        width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
+                                        background: C.mahogany, color: C.goldLight,
+                                        border: `1.5px solid rgba(201,147,58,0.3)`,
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        fontFamily: "'Cormorant Garamond', serif", fontSize: 13, fontWeight: 600,
+                                    }}>V</div>
+                                    <div style={{
+                                        background: '#FFFFFF', border: `1px solid ${C.parchment}`,
+                                        borderRadius: '16px 16px 16px 4px', padding: '13px 18px',
+                                        display: 'flex', gap: 5, alignItems: 'center',
+                                        boxShadow: '0 2px 12px rgba(28,20,16,0.06)',
+                                    }}>
+                                        {[0, 0.16, 0.32].map((delay, i) => (
+                                            <motion.div key={i}
+                                                animate={{ y: [0, -5, 0], opacity: [0.4, 1, 0.4] }}
+                                                transition={{ duration: 0.6, repeat: Infinity, delay }}
+                                                style={{ width: 7, height: 7, borderRadius: '50%', background: C.bronze }}
+                                            />
+                                        ))}
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
+                        <div ref={messagesEndRef} />
+                    </div>
+
+                    {/* ── Input area ── */}
+                    <div style={{
+                        flexShrink: 0, padding: '12px 20px 16px',
+                        borderTop: `1px solid ${C.parchment}`,
+                        background: 'rgba(245,241,234,0.96)',
+                        backdropFilter: 'blur(8px)',
+                        position: 'relative', zIndex: 2,
+                    }}>
+                        <div style={{
+                            display: 'flex', alignItems: 'center', gap: 8,
+                            background: '#FFFFFF',
+                            border: `1px solid ${listening ? C.mutedRose : C.sand}`,
+                            borderRadius: 14, padding: '8px 8px 8px 14px',
+                            boxShadow: listening
+                                ? `0 2px 16px rgba(196,137,122,0.18), 0 0 0 3px rgba(196,137,122,0.06)`
+                                : '0 2px 14px rgba(28,20,16,0.07)',
+                            transition: 'border-color 0.25s, box-shadow 0.25s',
+                            position: 'relative', overflow: 'hidden',
+                        }}>
+                            {/* Animated listening underline */}
+                            <motion.div
+                                animate={{ scaleX: listening ? 1 : 0 }}
+                                transition={{ duration: 0.3 }}
+                                style={{
+                                    position: 'absolute', bottom: 0, left: 0, right: 0, height: 1,
+                                    background: `linear-gradient(90deg, ${C.mutedRose}, ${C.bronze}, ${C.gold})`,
+                                    transformOrigin: 'left', pointerEvents: 'none',
+                                }}
+                            />
+
+                            {/* Mic button */}
+                            <button onClick={toggleListening} style={{
+                                width: 34, height: 34, borderRadius: 10, border: 'none',
+                                cursor: 'pointer', flexShrink: 0,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                transition: 'all 0.2s',
+                                background: listening ? C.mutedRose : C.parchment,
+                                color: listening ? '#FFFFFF' : C.bronze,
+                            }}>
+                                {listening ? <Mic size={14} /> : <MicOff size={14} />}
+                            </button>
+
+                            {/* Text input */}
+                            <input
+                                className="v-input"
+                                type="text"
+                                value={inputValue}
+                                onChange={e => setInputValue(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && sendMessage(inputValue)}
+                                placeholder={listening ? 'Listening…' : 'Transmit to V.A.N.I.N.I…'}
+                                style={{
+                                    flex: 1, border: 'none', outline: 'none',
+                                    background: 'transparent', fontSize: 14,
+                                    color: listening ? C.mutedRose : C.charcoal,
+                                    caretColor: C.bronze,
+                                }}
+                            />
+
+                            {/* Send button */}
+                            <button onClick={() => sendMessage(inputValue)} disabled={!inputValue.trim()} style={{
+                                width: 34, height: 34, borderRadius: 10, border: 'none',
+                                cursor: inputValue.trim() ? 'pointer' : 'not-allowed', flexShrink: 0,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                transition: 'all 0.2s',
+                                background: inputValue.trim() ? C.mahogany : C.parchment,
+                                color: inputValue.trim() ? C.goldLight : C.taupe,
+                                opacity: inputValue.trim() ? 1 : 0.5,
+                            }}>
+                                <Send size={13} />
+                            </button>
+                        </div>
+
+                        {/* Footer meta */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 7, paddingInline: 3 }}>
+                            <span style={{ fontSize: 10, color: C.taupe, letterSpacing: '0.04em' }}>
+                                Enter to send · Shift+Enter for new line
+                            </span>
+                            <span style={{ fontSize: 10, color: C.taupe, letterSpacing: '0.04em' }}>
+                                {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* ══ VANINI RIGHT PANEL ═══════════════════════════════════ */}
+                {/*
+                 * 230px fixed right panel — diagnostics, camera, brand.
+                 * Sits INSIDE the chat content area so it does NOT conflict
+                 * with App.tsx's left <Sidebar />. Total layout is:
+                 *   [App Sidebar 220px] | [Chat flex-1] | [VANINI panel 230px]
+                 */}
+                <aside style={{
+                    width: 230, flexShrink: 0,
+                    background: C.mahogany,
+                    display: 'flex', flexDirection: 'column',
+                    overflow: 'hidden', position: 'relative',
+                    borderRadius: '16px',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    boxShadow: '0 4px 24px rgba(0,0,0,0.25)',
+                }}>
+                    {/* Ambient glow layers */}
+                    <div aria-hidden="true" style={{
+                        position: 'absolute', inset: 0, pointerEvents: 'none',
+                        background: `
+                            radial-gradient(ellipse 80% 50% at 50% -10%, rgba(201,147,58,0.14) 0%, transparent 60%),
+                            radial-gradient(ellipse 60% 40% at 100% 100%, rgba(122,158,138,0.07) 0%, transparent 50%)
+                        `,
+                    }} />
+
+                    {/* ── Brand block ── */}
+                    <div style={{
+                        padding: '20px 20px 16px',
+                        borderBottom: '1px solid rgba(255,255,255,0.08)',
+                        position: 'relative', zIndex: 1, flexShrink: 0,
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                            {/* Pulsing orb */}
+                            <div style={{
+                                width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
+                                border: '1.5px solid rgba(201,147,58,0.45)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}>
+                                <motion.div
+                                    animate={{ scale: [1, 1.06, 1], opacity: [0.85, 1, 0.85] }}
+                                    transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                                    style={{
+                                        width: 18, height: 18, borderRadius: '50%',
+                                        background: `linear-gradient(135deg, ${C.gold} 0%, ${C.goldLight} 100%)`,
+                                    }}
+                                />
+                            </div>
+                            <div>
+                                <div style={{
+                                    fontFamily: "'Cormorant Garamond', serif",
+                                    fontSize: 18, fontWeight: 500,
+                                    color: C.cream, letterSpacing: '0.05em',
+                                }}>
+                                    V.A.N.I.N.I.
                                 </div>
-                                <div style={{ padding: '10px 14px', borderRadius: 10, borderTopLeftRadius: 3, background: 'rgba(129,140,248,0.06)', border: '1px solid rgba(129,140,248,0.14)', display: 'flex', gap: 5, alignItems: 'center' }}>
-                                    {[0, 0.15, 0.3].map((d, i) => (
-                                        <motion.div key={i} animate={{ y: [0, -5, 0] }} transition={{ duration: 0.55, repeat: Infinity, delay: d }}
-                                            style={{ width: 5, height: 5, borderRadius: '50%', background: '#818cf8', boxShadow: '0 0 5px #818cf8' }} />
-                                    ))}
+                                <div style={{
+                                    fontSize: 8, color: 'rgba(250,247,242,0.28)',
+                                    letterSpacing: '0.22em', textTransform: 'uppercase', marginTop: 1,
+                                }}>
+                                    Neural Interface v2.1
                                 </div>
                             </div>
-                        </motion.div>
-                    )}
-                    <div ref={messagesEndRef} />
-                </div>
+                        </div>
 
-                {/* Input bar */}
-                <div style={{ flexShrink: 0, padding: '10px 14px', borderTop: '1px solid rgba(255,255,255,0.03)' }}>
+                        {/* Status row */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <motion.div
+                                animate={{ opacity: [1, 0.35, 1] }}
+                                transition={{ duration: 2, repeat: Infinity }}
+                                style={{ width: 6, height: 6, borderRadius: '50%', background: statusColor, flexShrink: 0 }}
+                            />
+                            <span style={{
+                                fontSize: 9, color: 'rgba(250,247,242,0.38)',
+                                letterSpacing: '0.15em', textTransform: 'uppercase',
+                            }}>
+                                {statusLabel}
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* ── Camera module ── */}
                     <div style={{
-                        display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', borderRadius: 10, position: 'relative', overflow: 'hidden',
-                        background: 'rgba(6,10,22,0.85)',
-                        border: `1px solid ${listening ? '#fb718840' : `${accent}18`}`,
-                        boxShadow: listening ? '0 0 14px rgba(251,113,133,0.06)' : `0 0 14px ${accent}04`,
-                        transition: 'border-color 0.3s, box-shadow 0.3s'
+                        margin: '14px 16px 10px',
+                        borderRadius: 12, overflow: 'hidden',
+                        border: '1px solid rgba(255,255,255,0.09)',
+                        position: 'relative', aspectRatio: '16/10',
+                        background: 'rgba(0,0,0,0.4)', flexShrink: 0,
                     }}>
-                        {/* Animated bottom line when listening */}
-                        <motion.div animate={{ scaleX: listening ? 1 : 0 }} transition={{ duration: 0.3 }}
-                            style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 1, background: `linear-gradient(90deg,#fb7185,#818cf8,${accent})`, transformOrigin: 'left', pointerEvents: 'none' }} />
-
-                        {/* Mic button */}
-                        <button onClick={toggleListening} style={{
-                            width: 30, height: 30, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, cursor: 'pointer', border: 'none', transition: 'all 0.2s',
-                            background: listening ? 'rgba(251,113,133,0.12)' : `${accent}08`,
-                            color: listening ? '#fb7185' : '#334155',
-                            boxShadow: listening ? '0 0 10px rgba(251,113,133,0.15)' : 'none',
-                            outline: `1px solid ${listening ? 'rgba(251,113,133,0.28)' : `${accent}14`}`
+                        {cameraActive
+                            ? <video ref={videoRef} autoPlay muted style={{
+                                width: '100%', height: '100%', objectFit: 'cover',
+                                opacity: 0.6, filter: 'sepia(0.3) brightness(0.8)',
+                              }} />
+                            : <div style={{
+                                width: '100%', height: '100%',
+                                display: 'flex', flexDirection: 'column',
+                                alignItems: 'center', justifyContent: 'center', gap: 5,
+                              }}>
+                                <VideoOff size={14} color="rgba(250,247,242,0.15)" />
+                                <span style={{ fontSize: 8, color: 'rgba(250,247,242,0.15)', letterSpacing: '0.18em' }}>
+                                    FEED OFFLINE
+                                </span>
+                              </div>
+                        }
+                        {/* HUD overlay */}
+                        <div style={{
+                            position: 'absolute', inset: 0,
+                            display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+                            padding: '8px 10px', pointerEvents: 'none',
                         }}>
-                            {listening ? <Mic size={13} /> : <MicOff size={13} />}
-                        </button>
-
-                        {/* Text input */}
-                        <input
-                            type="text" value={inputValue}
-                            onChange={e => setInputValue(e.target.value)}
-                            onKeyDown={e => e.key === 'Enter' && sendMessage(inputValue)}
-                            placeholder={listening ? 'Listening...' : 'Transmit to V.A.N.I.N.I...'}
-                            style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: 13, fontFamily: 'inherit', color: listening ? '#fda4af' : '#64748b', caretColor: accent }}
-                        />
-
-                        {/* Send button */}
-                        <button onClick={() => sendMessage(inputValue)} disabled={!inputValue.trim()} style={{
-                            width: 30, height: 30, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, cursor: inputValue.trim() ? 'pointer' : 'not-allowed', border: 'none', transition: 'all 0.2s',
-                            background: inputValue.trim() ? `${accent}12` : 'transparent',
-                            color: inputValue.trim() ? accent : '#1e293b',
-                            boxShadow: inputValue.trim() ? `0 0 8px ${accent}15` : 'none',
-                            outline: `1px solid ${inputValue.trim() ? `${accent}28` : 'rgba(255,255,255,0.04)'}`
-                        }}>
-                            <Send size={12} />
-                        </button>
+                            <div style={{
+                                display: 'flex', alignItems: 'center', gap: 4, alignSelf: 'flex-start',
+                                background: 'rgba(0,0,0,0.5)', borderRadius: 20, padding: '2px 7px',
+                            }}>
+                                <motion.div
+                                    animate={{ opacity: [1, 0.2, 1] }}
+                                    transition={{ duration: 1.3, repeat: Infinity }}
+                                    style={{ width: 4, height: 4, borderRadius: '50%', background: '#E06060' }}
+                                />
+                                <span style={{ fontSize: 7, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.15em' }}>REC</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: 7, color: 'rgba(255,255,255,0.16)', fontFamily: 'monospace' }}>CAM · 01</span>
+                                <button
+                                    onClick={() => setCameraActive(p => !p)}
+                                    style={{
+                                        background: 'rgba(0,0,0,0.45)', border: 'none',
+                                        color: 'rgba(255,255,255,0.4)', cursor: 'pointer',
+                                        padding: '2px 6px', borderRadius: 5,
+                                        fontSize: 8, letterSpacing: '0.08em',
+                                        pointerEvents: 'all',
+                                    }}
+                                >
+                                    {cameraActive ? '■ OFF' : '▶ ON'}
+                                </button>
+                                <span style={{ fontSize: 7, color: 'rgba(255,255,255,0.16)', fontFamily: 'monospace' }}>{fmtCam()}</span>
+                            </div>
+                        </div>
                     </div>
 
-                    {/* Footer */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 5, paddingInline: 2 }}>
-                        <span style={{ fontSize: 7, color: '#0f172a', letterSpacing: '0.15em' }}>SYS // {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                        <span style={{ fontSize: 7, color: '#0f172a', letterSpacing: '0.15em' }}>{messages.length} TRANSMISSIONS</span>
+                    {/* ── Diagnostics ── */}
+                    <div style={{
+                        padding: '4px 18px 0', flex: 1, overflow: 'hidden',
+                        display: 'flex', flexDirection: 'column',
+                        position: 'relative', zIndex: 1,
+                    }}>
+                        <span style={{
+                            fontSize: 8, color: 'rgba(250,247,242,0.2)',
+                            letterSpacing: '0.28em', textTransform: 'uppercase',
+                            marginBottom: 12, display: 'block', flexShrink: 0,
+                        }}>
+                            System Diagnostics
+                        </span>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 11, flexShrink: 0 }}>
+                            <StatBar label="Neural Eng." pct={89} color={C.gold} />
+                            <StatBar label="CPU Core 0"  pct={42} color={C.sage} />
+                            <StatBar label="CPU Core 1"  pct={38} color={C.sage} />
+                        </div>
+
+                        {/* Info cards grid */}
+                        <div style={{
+                            display: 'grid', gridTemplateColumns: '1fr 1fr',
+                            gap: 7, marginTop: 16, paddingBottom: 18, flexShrink: 0,
+                        }}>
+                            <InfoCard icon={<Wifi     size={8} color={C.gold}      />} label="Network" value="2.4G" />
+                            <InfoCard icon={<Activity size={8} color={C.mutedRose} />} label="Temp"    value="42°C" />
+                        </div>
                     </div>
-                </div>
-            </Panel>
-        </div>
+                </aside>
+
+            </div>
+        </>
     );
 }
