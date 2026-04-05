@@ -24,12 +24,13 @@ class AgentOrchestrator:
             "data":   DataAgent(),
         }
 
-    def route(self, decision: Dict[str, Any]) -> str:
-        """Dispatch the decision to the correct agent and return its response."""
+    def route(self, decision: Dict[str, Any]):
+        """Dispatch the decision to the correct agent and yield its response chunks."""
 
         # Handle clarification first
         if decision.get("needs_clarification"):
-            return decision.get("clarification_question") or "Could you please clarify?"
+            yield decision.get("clarification_question") or "Could you please clarify?"
+            return
 
         agent_name = decision.get("agent", "data")
         intent     = decision.get("intent", "general_query")
@@ -52,7 +53,14 @@ class AgentOrchestrator:
 
         try:
             logger.info(f"[Orchestrator] Routing intent='{intent}' → agent='{agent.name}'")
-            return agent.execute(intent, slots)
+            result = agent.execute(intent, slots)
+            
+            # Agents can return a string or a generator
+            if isinstance(result, str):
+                yield result
+            else:
+                for chunk in result:
+                    yield chunk
         except Exception as e:
             logger.error(f"[Orchestrator] Agent execution failed: {e}", exc_info=True)
-            return f"Sorry, I encountered an error while handling your request: {e}"
+            yield f"Sorry, I encountered an error: {e}"

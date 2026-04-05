@@ -1,7 +1,9 @@
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+import json
 import uvicorn
 import psutil
 import datetime
@@ -69,12 +71,7 @@ def get_db():
 @app.post("/chat")
 async def chat_endpoint(request: ChatRequest):
     """
-    Multi-agent pipeline:
-      1. Wake-word check
-      2. NLU  (existing SVM intent classifier + entity extractor)
-      3. AI Decision Engine  → picks agent + extracts/refines slots
-      4. Agent Orchestrator  → dispatches to System / Web / App / Data agent
-      5. Response to user
+    Multi-agent streaming pipeline.
     """
     user_text = request.message
 
@@ -84,50 +81,46 @@ async def chat_endpoint(request: ChatRequest):
     matched    = next((w for w in wake_words if w in lower_text), None)
 
     if not matched:
-        return {"ignored": True, "response": ""}
+        # Silently ignore requests without the wake-word
+        async def empty_gen():
+            if False: yield ""  # generator marker
+        return StreamingResponse(empty_gen(), media_type="text/plain")
 
     # Strip wake word
     clean_text = lower_text.replace(matched, "", 1).strip()
     if not clean_text:
-        return {"response": "Yes?"}
+        async def yes_gen():
+            yield "Yes?"
+        return StreamingResponse(yes_gen(), media_type="text/plain")
 
-    # ── 2. Vision check (unchanged shortcut) ──────────────────────────
-    vision_triggers = ["read screen", "look at screen", "what is on screen",
-                       "explain this screen", "scan screen"]
-    if any(t in clean_text for t in vision_triggers):
-        from backend.llm_client import analyze_screen
-        return {"response": analyze_screen(clean_text)}
-
-    # ── 3. NLU ────────────────────────────────────────────────────────
+    # ── 2. NLU (SVM hint) ─────────────────────────────────────────────
     try:
         predicted_intent = classifier.predict(clean_text)
         entities         = extractor.extract(clean_text, predicted_intent)
-        logger.info(f"NLU → intent='{predicted_intent}'  entities={entities}")
     except Exception as e:
         logger.warning(f"NLU error: {e}")
-        predicted_intent = None
-        entities         = {}
+        predicted_intent, entities = None, {}
 
-    # ── 4. Decision Engine ────────────────────────────────────────────
-    try:
-        decision = decision_engine.decide(clean_text, predicted_intent, entities)
-        logger.info(f"Decision → {decision}")
-    except Exception as e:
-        logger.error(f"Decision engine failed: {e}")
-        decision = {
-            "agent": "data", "intent": "general_query",
-            "slots": {"query": clean_text},
-            "needs_clarification": False,
-        }
+    # ── 3. Decision Engine & Orchestrate ──────────────────────────────
+    async def stream_generator():
+        try:
+            # Step A: Get routing decision (Sync call to Llama 3.2)
+            decision = decision_engine.decide(clean_text, predicted_intent, entities)
+            logger.info(f"Decision → {decision}")
+        except Exception as e:
+            logger.error(f"Decision engine failed: {e}")
+            decision = {"agent": "data", "intent": "general_query", "slots": {"query": clean_text}}
 
-    # ── 5. Orchestrate ────────────────────────────────────────────────
-    try:
-        response = orchestrator.route(decision)
-    except Exception as e:
-        logger.error(f"Orchestrator failed: {e}", exc_info=True)
-        response = f"Sorry, something went wrong: {e}"
+        # Step B: Yield chunks from Orchestrator
+        try:
+            for chunk in orchestrator.route(decision):
+                # We yield raw text chunks for simplicity in the UI
+                yield chunk
+        except Exception as e:
+            logger.error(f"Orchestration error: {e}")
+            yield f"Error: {e}"
 
-    return {"response": response}
+    return StreamingResponse(stream_generator(), media_type="text/plain")
 
 
 # ── Database endpoints (unchanged) ────────────────────────────────────────

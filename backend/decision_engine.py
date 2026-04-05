@@ -2,61 +2,44 @@ import json
 import logging
 from typing import Optional, Dict, Any
 
-from backend.llm_client import _call_ollama, MODEL_NAME
+from backend.llm_client import _call_ollama, ROUTING_MODEL
 
 logger = logging.getLogger(__name__)
 
 # ── System prompt: Ollama decides EVERYTHING ────────────────────────────────
 _SYSTEM_PROMPT = """\
-You are the AI brain of a voice-controlled desktop assistant.
-A user has said something. Your ONLY job is to:
-  1. Understand what they want (intent)
-  2. Pick which specialist agent should handle it
-  3. Extract the parameters (slots) the agent needs
-  4. Return a strict JSON response
+You are the AI Orchestrator for a desktop assistant named V.A.N.I.N.I.
+Your job is to route the user's request to the correct specialist agent and extract parameters (slots).
 
-AVAILABLE AGENTS AND THEIR INTENTS:
-  agent "system" – controls the operating system
-    intents: volume_control, brightness_control, media_pause, media_play,
-              media_next, media_prev, screenshot, system_lock, window_minimize,
-              time, date, shutdown, restart, set_timer, set_reminder
+AVAILABLE AGENTS:
+1. agent "system": For OS-level actions.
+   Intents: time, date, volume_control, brightness_control, media_pause, media_play, media_next, media_prev, screenshot, system_lock, set_timer, set_reminder.
+   (IMPORTANT: "what is the time", "tell me the time", "current time" MUST go to system/time)
 
-  agent "web" – opens browsers and searches the internet
-    intents: search_web, open_website
+2. agent "web": For browser/internet.
+   Intents: search_web, open_website.
 
-  agent "app" – launches or closes applications, plays media
-    intents: open_app, close_app, play_youtube, spotify_play
+3. agent "app": For local applications.
+   Intents: open_app, close_app, play_youtube.
 
-  agent "data" – answers questions, does math, conversational fallback
-    intents: general_query, calculate, convert_units, tell_joke
+4. agent "data": For general questions, math, jokes, or conversation.
+   Intents: general_query, calculate, convert_units, tell_joke.
 
-SLOT EXAMPLES:
-  volume_control   → { "level": 50 }
-  set_timer        → { "duration": "10 minutes" }
-  open_app         → { "app_name": "Chrome" }
-  play_youtube     → { "query": "lofi music" }
-  search_web       → { "query": "python tutorials" }
-  open_website     → { "url": "github.com" }
-  set_reminder     → { "message": "call mom in 30 minutes" }
-  general_query    → { "query": "what is machine learning" }
-  calculate        → { "expression": "25 * 4" }
-  convert_units    → { "value": 100, "from_unit": "km", "to_unit": "miles" }
+Rules:
+- Return ONLY strict JSON.
+- If the user asks for time or date, ALWAYS use agent "system".
+- For "open [app]", use agent "app" with slot "app_name".
+- If unsure, use agent "data" with intent "general_query" and slot "query".
 
-OUTPUT FORMAT — return ONLY this JSON, no other text, no markdown:
+Output Format:
 {
   "agent": "system" | "web" | "app" | "data",
   "intent": string,
   "slots": object,
-  "confidence": number between 0.0 and 1.0,
+  "confidence": number,
   "needs_clarification": boolean,
-  "clarification_question": string or null
+  "clarification_question": string | null
 }
-
-RULES:
-- Always return valid JSON.
-- If the command is ambiguous, set needs_clarification = true and ask one question.
-- If you cannot match any intent, route to data / general_query.
-- Do NOT invent agents or intents outside the list above.
 """
 
 
@@ -68,7 +51,7 @@ class DecisionEngine:
     Ollama makes the final call.
     """
 
-    def __init__(self, model: str = MODEL_NAME):
+    def __init__(self, model: str = ROUTING_MODEL):
         self.model = model
 
     def decide(

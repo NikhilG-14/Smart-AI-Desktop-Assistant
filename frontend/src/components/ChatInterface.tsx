@@ -170,27 +170,64 @@ export function ChatInterface() {
     const sendMessage = async (text: string) => {
         if (!text.trim()) return;
         const uid = Date.now().toString();
+        
+        // Add user message
         setMessages(p => [...p, { id: uid, type: 'user', text, timestamp: new Date() }]);
         setInputValue('');
         setIsThinking(true);
+
+        // Prepare bot message placeholder
+        const botId = (Date.now() + 1).toString();
+        let currentBotText = '';
+
         try {
             const res = await fetch('http://127.0.0.1:8000/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ message: text }),
             });
-            const data = await res.json();
-            if (data.ignored) { setMessages(p => p.filter(m => m.id !== uid)); setIsThinking(false); return; }
-            const botText = data.response || 'No response received.';
-            setMessages(p => [...p, { id: Date.now().toString(), type: 'bot', text: botText, timestamp: new Date() }]);
-            speakMessage(botText);
-        } catch {
+
+            if (!res.ok) throw new Error('Backend unavailable');
+
+            // Handle streaming response
+            const reader = res.body?.getReader();
+            if (!reader) throw new Error('No stream');
+
+            const decoder = new TextDecoder();
+            let isFirstChunk = true;
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const chunk = decoder.decode(value, { stream: true });
+                currentBotText += chunk;
+                
+                if (isFirstChunk) {
+                    setIsThinking(false); // Stop dots once text starts
+                    setMessages(p => [...p, { id: botId, type: 'bot', text: currentBotText, timestamp: new Date() }]);
+                    isFirstChunk = false;
+                } else {
+                    setMessages(p => p.map(m => m.id === botId ? { ...m, text: currentBotText } : m));
+                }
+            }
+            
+            // If nothing was streamed (ignored), remove the user message
+            if (isFirstChunk) {
+                setMessages(p => p.filter(m => m.id !== uid));
+            } else {
+                speakMessage(currentBotText);
+            }
+        } catch (err) {
+            console.error(err);
             setMessages(p => [...p, {
                 id: Date.now().toString(), type: 'bot',
                 text: 'Connection to V.A.N.I.N.I. backend failed. Please check the server.',
                 timestamp: new Date(),
             }]);
-        } finally { setIsThinking(false); }
+        } finally {
+            setIsThinking(false);
+        }
     };
 
     // Derived
@@ -405,6 +442,35 @@ export function ChatInterface() {
                                                 style={{ width: 7, height: 7, borderRadius: '50%', background: C.bronze }}
                                             />
                                         ))}
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
+                        {/* Interim Real-time Speech Transcription */}
+                        <AnimatePresence>
+                            {listening && transcript && (
+                                <motion.div
+                                    initial={{ opacity: 0, x: -10 }}
+                                    animate={{ opacity: 0.7, x: 0 }}
+                                    exit={{ opacity: 0 }}
+                                    style={{
+                                        display: 'flex', gap: 10, alignItems: 'flex-end',
+                                        flexDirection: 'row-reverse', opacity: 0.6
+                                    }}
+                                >
+                                    <div style={{
+                                        width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
+                                        background: C.parchment, color: C.bronze, border: `1.5px solid ${C.sand}`,
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        fontFamily: "'Cormorant Garamond', serif", fontSize: 13, fontWeight: 600,
+                                    }}>U</div>
+                                    <div style={{
+                                        padding: '11px 16px', fontSize: 14, fontStyle: 'italic',
+                                        background: C.mahogany, color: 'rgba(250,247,242,0.6)',
+                                        borderRadius: '16px 16px 4px 16px', border: `1px dashed ${C.sand}`,
+                                    }}>
+                                        {transcript}...
                                     </div>
                                 </motion.div>
                             )}

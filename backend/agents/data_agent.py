@@ -3,7 +3,7 @@ import random
 from typing import Dict, Any
 
 from backend.agents.base_agent import BaseAgent
-from backend.llm_client import _call_ollama, MODEL_NAME
+from backend.llm_client import _call_ollama, _stream_ollama, DATA_MODEL, _SYSTEM_PROMPT as _BASE_SYSTEM_PROMPT
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ class DataAgent(BaseAgent):
 
     SUPPORTED_INTENTS = {"general_query", "calculate", "convert_units", "tell_joke"}
 
-    def __init__(self, model: str = MODEL_NAME):
+    def __init__(self, model: str = DATA_MODEL):
         super().__init__("data")
         self.model = model
 
@@ -61,8 +61,10 @@ class DataAgent(BaseAgent):
         else:  # general_query (and fallback)
             query = slots.get("query", slots.get("question", "")).strip()
             if not query:
-                return "How can I help you?"
-            return self._ask_llm(query)
+                yield "How can I help you?"
+            else:
+                for chunk in _stream_ollama(query, _BASE_SYSTEM_PROMPT, self.model):
+                    yield chunk
 
     def _ask_llm(self, prompt: str) -> str:
         try:
