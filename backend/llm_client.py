@@ -9,9 +9,9 @@ load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
 logger = logging.getLogger(__name__)
 
-MODEL_NAME     = os.getenv("OLLAMA_MODEL",    "vani-model:latest")
-ROUTING_MODEL  = os.getenv("ROUTING_MODEL",   "llama3.2:latest")
-DATA_MODEL     = os.getenv("DATA_MODEL",      "vani-model:latest")
+MODEL_NAME     = os.getenv("OLLAMA_MODEL",    "qwen3:8b")
+ROUTING_MODEL  = os.getenv("ROUTING_MODEL",   "qwen3:8b")
+DATA_MODEL     = os.getenv("DATA_MODEL",      "qwen3:8b")
 BASE_URL       = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 LLM_TEMP       = float(os.getenv("LLM_TEMPERATURE", 0))
 LLM_TIMEOUT    = int(os.getenv("LLM_TIMEOUT", 60))
