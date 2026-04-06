@@ -12,71 +12,139 @@ function App() {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
 
   return (
-    // Root: w-screen h-screen is the single source of truth for sizing.
-    // overflow-hidden prevents any child from ever escaping.
-    <div className="w-screen h-screen flex overflow-hidden bg-[#080b12] font-sans">
+    /*
+     * Root div — matches #root which is position:relative, width:100%, height:100%
+     * This div just carries the background color and is a flex row
+     * Sidebar sits on the left, main takes the rest
+     */
+    <div style={{
+      width: '100%',
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'row',
+      overflow: 'hidden',
+      backgroundColor: '#080b12',
+    }}>
 
+      {/* Sidebar — fixed 220px, never shrinks, full height */}
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
       {/*
-       * <main> takes all remaining horizontal space (flex-1),
-       * has an explicit height (h-full), and clips overflow.
-       * position:relative creates the stacking context for the blobs.
-       * NO nested flex wrappers — the content div sits directly inside.
+       * main — takes all remaining width after sidebar
+       * position:relative is CRITICAL — it's the anchor for the
+       * position:absolute tab panels inside
        */}
-      <main className="relative flex-1 min-h-0 min-w-0 flex">
+      <main style={{
+        position: 'relative',
+        flex: 1,
+        minWidth: 0,
+        height: '100%',
+        overflow: 'hidden',
+        backgroundColor: '#080b12',
+        overscrollBehavior: 'none',
+      }}>
 
-        {/* Ambient depth blobs — position:absolute, pointer-events:none, z-0 */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -top-40 -left-20 w-[600px] h-[600px] rounded-full"
-          style={{
-            zIndex: 0,
-            background: 'radial-gradient(circle, rgba(34,211,238,0.07) 0%, transparent 70%)',
-            filter: 'blur(60px)',
-          }}
-        />
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -bottom-40 -right-20 w-[600px] h-[600px] rounded-full"
-          style={{
-            zIndex: 0,
-            background: 'radial-gradient(circle, rgba(129,140,248,0.07) 0%, transparent 70%)',
-            filter: 'blur(60px)',
-          }}
-        />
+        {/* ── Decorative blobs — purely visual, never affect layout ── */}
+        <div aria-hidden="true" style={{
+          position: 'absolute',
+          top: -160, left: -80,
+          width: 600, height: 600,
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(34,211,238,0.07) 0%, transparent 70%)',
+          filter: 'blur(60px)',
+          pointerEvents: 'none',
+          zIndex: 0,
+        }} />
+        <div aria-hidden="true" style={{
+          position: 'absolute',
+          bottom: -160, right: -80,
+          width: 600, height: 600,
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(129,140,248,0.07) 0%, transparent 70%)',
+          filter: 'blur(60px)',
+          pointerEvents: 'none',
+          zIndex: 0,
+        }} />
 
-        {/* Perspective grid — position:absolute, z:0 */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0"
-          style={{
-            zIndex: 0,
-            backgroundImage: `
-              linear-gradient(rgba(34,211,238,0.03) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(34,211,238,0.03) 1px, transparent 1px)
-            `,
-            backgroundSize: '48px 48px',
-            maskImage: 'radial-gradient(ellipse at 50% 120%, black 0%, transparent 70%)',
-          }}
-        />
+        {/* ── Perspective grid — purely visual, never affects layout ── */}
+        <div aria-hidden="true" style={{
+          position: 'absolute',
+          inset: 0,
+          pointerEvents: 'none',
+          zIndex: 0,
+          backgroundImage: `
+            linear-gradient(rgba(34,211,238,0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(34,211,238,0.03) 1px, transparent 1px)
+          `,
+          backgroundSize: '48px 48px',
+          maskImage: 'radial-gradient(ellipse at 50% 120%, black 0%, transparent 70%)',
+        }} />
 
         {/*
-         * Content panel — sits ABOVE the blobs (z:10), fills full height.
-         * w-full h-full are reliable here because <main> has a concrete height.
-         * overflow:hidden prevents any child page from blowing out the layout.
+         * ── TAB PANELS ──────────────────────────────────────────────
+         *
+         * KEY ARCHITECTURE DECISION:
+         * Every tab panel is position:absolute, inset:0, zIndex:10
+         * This means each panel gets EXACT pixel dimensions from <main>
+         * which is position:relative with a concrete height:100%.
+         *
+         * This completely bypasses the flex height chain that was
+         * causing layout breaks on re-render. There is no flex chain
+         * to break — each panel simply fills its positioned parent.
+         *
+         * display:flex when active, display:none when inactive.
+         * display:none removes from paint but keeps component mounted
+         * so state (messages, camera, etc) is preserved between tabs.
          */}
-        <div
-          className="flex-1 min-h-0 min-w-0"
-          style={{ position: 'relative', zIndex: 10 }}
-        >
-          {activeTab === 'dashboard' && <Dashboard />}
-          <div className={activeTab === 'chat' ? 'block h-full' : 'hidden'}>
-            <ChatInterface />
-          </div>
-          {activeTab === 'reminders' && <Reminders />}
-          {activeTab === 'timers' && <Timers />}
-          {activeTab === 'settings' && <Settings />}
+
+        {/* Dashboard */}
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 10,
+          display: activeTab === 'dashboard' ? 'flex' : 'none',
+        }}>
+          <Dashboard />
+        </div>
+
+        {/* Chat */}
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 10,
+          display: activeTab === 'chat' ? 'flex' : 'none',
+        }}>
+          <ChatInterface />
+        </div>
+
+        {/* Reminders */}
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 10,
+          display: activeTab === 'reminders' ? 'flex' : 'none',
+        }}>
+          <Reminders />
+        </div>
+
+        {/* Timers */}
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 10,
+          display: activeTab === 'timers' ? 'flex' : 'none',
+        }}>
+          <Timers />
+        </div>
+
+        {/* Settings */}
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 10,
+          display: activeTab === 'settings' ? 'flex' : 'none',
+        }}>
+          <Settings />
         </div>
 
       </main>
