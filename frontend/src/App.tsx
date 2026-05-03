@@ -23,7 +23,7 @@ function App() {
       display: 'flex',
       flexDirection: 'row',
       overflow: 'hidden',
-      backgroundColor: '#080b12',
+      backgroundColor: '#14161a',
     }}>
 
       {/* Sidebar — fixed 220px, never shrinks, full height */}
@@ -40,7 +40,7 @@ function App() {
         minWidth: 0,
         height: '100%',
         overflow: 'hidden',
-        backgroundColor: '#080b12',
+        backgroundColor: '#14161a',
         overscrollBehavior: 'none',
       }}>
 
@@ -50,7 +50,7 @@ function App() {
           top: -160, left: -80,
           width: 600, height: 600,
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(34,211,238,0.07) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(163,177,138,0.08) 0%, transparent 70%)',
           filter: 'blur(60px)',
           pointerEvents: 'none',
           zIndex: 0,
@@ -60,7 +60,7 @@ function App() {
           bottom: -160, right: -80,
           width: 600, height: 600,
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(129,140,248,0.07) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(148,163,184,0.08) 0%, transparent 70%)',
           filter: 'blur(60px)',
           pointerEvents: 'none',
           zIndex: 0,
@@ -73,8 +73,8 @@ function App() {
           pointerEvents: 'none',
           zIndex: 0,
           backgroundImage: `
-            linear-gradient(rgba(34,211,238,0.03) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(34,211,238,0.03) 1px, transparent 1px)
+            linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px)
           `,
           backgroundSize: '48px 48px',
           maskImage: 'radial-gradient(ellipse at 50% 120%, black 0%, transparent 70%)',

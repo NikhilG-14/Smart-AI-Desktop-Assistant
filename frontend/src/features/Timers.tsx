@@ -16,15 +16,15 @@ interface Timer {
 // ─── Preset Templates ─────────────────────────────────────────────────────────
 
 const PRESETS = [
-  { label: 'Pomodoro',     minutes: 25, color: '#67e8f9' },
-  { label: 'Short Break',  minutes: 5,  color: '#34d399' },
-  { label: 'Long Break',   minutes: 15, color: '#a78bfa' },
-  { label: 'Deep Focus',   minutes: 50, color: '#f59e0b' },
-  { label: 'Quick Task',   minutes: 10, color: '#fb923c' },
-  { label: 'Custom',       minutes: 0,  color: '#f87171' },
+  { label: 'Pomodoro',     minutes: 25, color: '#a3b18a' },
+  { label: 'Short Break',  minutes: 5,  color: '#84a59d' },
+  { label: 'Long Break',   minutes: 15, color: '#94a3b8' },
+  { label: 'Deep Focus',   minutes: 50, color: '#f2cc8f' },
+  { label: 'Quick Task',   minutes: 10, color: '#81b29a' },
+  { label: 'Custom',       minutes: 0,  color: '#e07a5f' },
 ];
 
-const COLORS = ['#67e8f9', '#a78bfa', '#34d399', '#f59e0b', '#fb923c', '#f87171'];
+const COLORS = ['#a3b18a', '#94a3b8', '#84a59d', '#f2cc8f', '#e07a5f', '#81b29a'];
 
 // ─── Format ───────────────────────────────────────────────────────────────────
 
@@ -180,6 +180,43 @@ export default function Timers() {
   const [selectedColor, setSelectedColor] = useState(COLORS[0]);
   const intervalRef = useRef<number | null>(null);
 
+  // Sync with backend
+  const syncWithBackend = useCallback(async () => {
+    try {
+      const res = await fetch('http://127.0.0.1:8000/timers/active');
+      const backendTimers = await res.json();
+      
+      setTimers(current => {
+        const updated = [...current];
+        backendTimers.forEach((bt: any) => {
+          const idStr = bt.id.toString();
+          const exists = updated.find(t => t.id === idStr);
+          if (!exists) {
+            updated.push({
+              id: idStr,
+              label: bt.label,
+              totalSeconds: bt.duration_seconds,
+              remainingSeconds: bt.remaining_seconds,
+              status: bt.remaining_seconds <= 0 ? 'done' : 'running',
+              color: COLORS[bt.id % COLORS.length],
+            });
+          } else if (Math.abs(exists.remainingSeconds - bt.remaining_seconds) > 5) {
+            // Sync if drift is significant
+            exists.remainingSeconds = bt.remaining_seconds;
+          }
+        });
+        // Remove ones that died in backend
+        return updated.filter(t => backendTimers.some((bt: any) => bt.id.toString() === t.id));
+      });
+    } catch (e) { console.error("Sync failed", e); }
+  }, []);
+
+  useEffect(() => {
+    syncWithBackend();
+    const id = setInterval(syncWithBackend, 5000);
+    return () => clearInterval(id);
+  }, [syncWithBackend]);
+
   // Tick all running timers every second
   useEffect(() => {
     intervalRef.current = window.setInterval(() => {
@@ -194,34 +231,34 @@ export default function Timers() {
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, []);
 
-  const addPreset = useCallback((preset: typeof PRESETS[0]) => {
-    if (preset.minutes === 0) return; // custom — handled separately
+  const addPreset = useCallback(async (preset: typeof PRESETS[0]) => {
+    if (preset.minutes === 0) return;
     const secs = preset.minutes * 60;
-    setTimers(prev => [...prev, {
-      id: crypto.randomUUID(),
-      label: preset.label,
-      totalSeconds: secs,
-      remainingSeconds: secs,
-      status: 'idle',
-      color: preset.color,
-    }]);
-  }, []);
+    try {
+      await fetch('http://127.0.0.1:8000/timers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ label: preset.label, duration_seconds: secs })
+      });
+      syncWithBackend();
+    } catch (e) { console.error("Add preset failed", e); }
+  }, [syncWithBackend]);
 
-  const addCustom = useCallback(() => {
+  const addCustom = useCallback(async () => {
     const mins = parseInt(customMins);
     if (!mins || mins <= 0) return;
     const secs = mins * 60;
-    setTimers(prev => [...prev, {
-      id: crypto.randomUUID(),
-      label: customLabel.trim() || `${mins}m Timer`,
-      totalSeconds: secs,
-      remainingSeconds: secs,
-      status: 'idle',
-      color: selectedColor,
-    }]);
-    setCustomMins('');
-    setCustomLabel('');
-  }, [customMins, customLabel, selectedColor]);
+    try {
+      await fetch('http://127.0.0.1:8000/timers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ label: customLabel.trim() || `${mins}m Timer`, duration_seconds: secs })
+      });
+      setCustomMins('');
+      setCustomLabel('');
+      syncWithBackend();
+    } catch (e) { console.error("Add custom failed", e); }
+  }, [customMins, customLabel, syncWithBackend]);
 
   const toggle = useCallback((id: string) => {
     setTimers(prev => prev.map(t =>
@@ -238,8 +275,11 @@ export default function Timers() {
     ));
   }, []);
 
-  const remove = useCallback((id: string) => {
-    setTimers(prev => prev.filter(t => t.id !== id));
+  const remove = useCallback(async (id: string) => {
+    try {
+      await fetch(`http://127.0.0.1:8000/timers/${id}`, { method: 'DELETE' });
+      setTimers(prev => prev.filter(t => t.id !== id));
+    } catch (e) { console.error("Delete failed", e); }
   }, []);
 
   const runningCount = timers.filter(t => t.status === 'running').length;
@@ -260,7 +300,7 @@ export default function Timers() {
             </p>
           </div>
           {timers.length > 0 && (
-            <span className="badge badge-cyan">{timers.length} total</span>
+            <span className="badge badge-cyan">{timers.length} active</span>
           )}
         </div>
 

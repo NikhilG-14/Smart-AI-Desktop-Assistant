@@ -19,18 +19,18 @@ interface Message {
 }
 
 const C = {
-    mahogany:  '#5C3D2E',
-    cream:     '#FAF7F2',
-    warmWhite: '#F5F1EA',
-    parchment: '#EDE8DF',
-    sand:      '#D4CAB8',
-    taupe:     '#B8A99A',
-    bronze:    '#8B6E52',
-    charcoal:  'rgba(58,53,48,0.92)',
-    gold:      '#C9933A',
-    goldLight: '#E8C97A',
-    sage:      '#7A9E8A',
-    mutedRose: '#C4897A',
+    mahogany:  '#1a1d23',
+    cream:     '#ffffff',
+    warmWhite: '#14161a',
+    parchment: 'rgba(255,255,255,0.05)',
+    sand:      'rgba(255,255,255,0.08)',
+    taupe:     'rgba(255,255,255,0.25)',
+    bronze:    '#a3b18a',
+    charcoal:  'rgba(255,255,255,0.85)',
+    gold:      '#a3b18a',
+    goldLight: '#94a3b8',
+    sage:      '#a3b18a',
+    mutedRose: '#94a3b8',
 } as const;
 
 const StatBar = ({ label, pct, color }: { label: string; pct: number; color: string }) => (
@@ -136,6 +136,38 @@ export function ChatInterface() {
                 if (!listening) SpeechRecognition.startListening({ continuous: false, language: 'en-IN' });
             }
         });
+
+        // Proactive Vani Events (Timers, Reminders)
+        const es = new EventSource('http://127.0.0.1:8000/events');
+        
+        es.onmessage = (e) => {
+            try {
+                const data = JSON.parse(e.data);
+                if (data.type === 'heartbeat' || data.type === 'connected') return;
+                
+                const eventMsg: Message = {
+                    id: `event-${Date.now()}`,
+                    type: 'bot',
+                    text: data.message,
+                    timestamp: new Date(),
+                };
+                
+                setMessages(prev => [...prev, eventMsg]);
+                speakMessage(data.message);
+                
+                if (Notification.permission === 'granted') {
+                    new Notification('Vani', { body: data.message });
+                }
+            } catch (err) {
+                console.error("SSE parse error", err);
+            }
+        };
+
+        if (Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+
+        return () => es.close();
     }, []);
 
     const fmtTime = (d: Date) =>
@@ -268,13 +300,13 @@ export function ChatInterface() {
                 position: 'relative',
                 overflow: 'hidden',
                 borderRadius: '16px',
-                border: `1px solid ${C.parchment}`,
-                boxShadow: '0 4px 24px rgba(0,0,0,0.15)',
+                border: `1px solid rgba(255,255,255,0.05)`,
+                boxShadow: '0 4px 24px rgba(0,0,0,0.1)',
             }}>
-                {/* Crosshatch texture */}
+                {/* Subtle gradient overlay */}
                 <div aria-hidden="true" style={{
-                    position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.45,
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%238B6E52' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/svg%3E")`,
+                    position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.1,
+                    background: `linear-gradient(135deg, rgba(163,177,138,0.1), transparent)`,
                 }} />
 
                 {/* ── Header ── */}
@@ -284,9 +316,9 @@ export function ChatInterface() {
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     padding: '16px 24px 14px',
-                    borderBottom: `1px solid ${C.parchment}`,
-                    background: 'rgba(245,241,234,0.96)',
-                    backdropFilter: 'blur(8px)',
+                    borderBottom: `1px solid rgba(255,255,255,0.05)`,
+                    background: 'rgba(26, 29, 35, 0.8)',
+                    backdropFilter: 'blur(12px)',
                     position: 'relative',
                     zIndex: 2,
                 }}>
@@ -308,14 +340,14 @@ export function ChatInterface() {
                         </div>
                         <div>
                             <div style={{
-                                fontFamily: "'Cormorant Garamond', serif",
-                                fontSize: 19, fontWeight: 500,
-                                color: C.mahogany, letterSpacing: '0.02em', lineHeight: 1.2,
+                                fontFamily: "'Inter', sans-serif",
+                                fontSize: 16, fontWeight: 600,
+                                color: 'rgba(255,255,255,0.8)', letterSpacing: '0.01em', lineHeight: 1.2,
                             }}>
-                                Secure Channel
+                                Vani AI
                             </div>
-                            <div style={{ fontSize: 10, color: C.taupe, letterSpacing: '0.08em', marginTop: 1 }}>
-                                Encrypted · AES-256 · {messages.length} transmissions
+                            <div style={{ fontSize: 9, color: C.taupe, letterSpacing: '0.08em', marginTop: 1, textTransform: 'uppercase' }}>
+                                Neural Network · {messages.length} interactions
                             </div>
                         </div>
                     </div>
@@ -393,20 +425,19 @@ export function ChatInterface() {
                                     maxWidth: '70%',
                                 }}>
                                     <div style={{
-                                        padding: '11px 16px', fontSize: 14, lineHeight: 1.65,
+                                        padding: '11px 16px', fontSize: 13.5, lineHeight: 1.6,
                                         ...(msg.type === 'bot'
                                             ? {
-                                                background: '#FFFFFF',
-                                                border: `1px solid ${C.parchment}`,
-                                                color: C.charcoal,
+                                                background: 'rgba(255,255,255,0.03)',
+                                                border: `1px solid rgba(255,255,255,0.06)`,
+                                                color: 'rgba(255,255,255,0.8)',
                                                 borderRadius: '16px 16px 16px 4px',
-                                                boxShadow: '0 2px 12px rgba(28,20,16,0.06)',
                                             }
                                             : {
-                                                background: C.mahogany,
-                                                color: 'rgba(250,247,242,0.92)',
+                                                background: 'rgba(163, 177, 138, 0.1)',
+                                                border: '1px solid rgba(163, 177, 138, 0.2)',
+                                                color: 'rgba(255,255,255,0.9)',
                                                 borderRadius: '16px 16px 4px 16px',
-                                                boxShadow: '0 2px 12px rgba(92,61,46,0.22)',
                                             }
                                         ),
                                     }}>
@@ -457,16 +488,16 @@ export function ChatInterface() {
                 <div style={{
                     flexShrink: 0,
                     padding: '12px 20px 16px',
-                    borderTop: `1px solid ${C.parchment}`,
-                    background: 'rgba(245,241,234,0.96)',
-                    backdropFilter: 'blur(8px)',
+                    borderTop: `1px solid rgba(255,255,255,0.05)`,
+                    background: 'rgba(26, 29, 35, 0.8)',
+                    backdropFilter: 'blur(12px)',
                     position: 'relative',
                     zIndex: 2,
                 }}>
                     <div style={{
                         display: 'flex', alignItems: 'center', gap: 8,
-                        background: '#FFFFFF',
-                        border: `1px solid ${listening ? C.mutedRose : C.sand}`,
+                        background: 'rgba(255,255,255,0.03)',
+                        border: `1px solid ${listening ? C.mutedRose : 'rgba(255,255,255,0.06)'}`,
                         borderRadius: 14, padding: '8px 8px 8px 14px',
                         boxShadow: listening
                             ? `0 2px 16px rgba(196,137,122,0.18), 0 0 0 3px rgba(196,137,122,0.06)`
@@ -503,7 +534,7 @@ export function ChatInterface() {
                             style={{
                                 flex: 1, border: 'none', outline: 'none',
                                 background: 'transparent', fontSize: 14,
-                                color: listening ? C.mutedRose : C.charcoal,
+                                color: listening ? C.mutedRose : 'rgba(255,255,255,0.8)',
                                 caretColor: C.bronze,
                             }}
                         />
@@ -537,52 +568,52 @@ export function ChatInterface() {
                 minHeight: 0,
                 display: 'flex',
                 flexDirection: 'column',
-                background: C.mahogany,
+                background: '#1a1d23',
                 overflow: 'hidden',
                 position: 'relative',
                 borderRadius: '16px',
-                border: '1px solid rgba(255,255,255,0.08)',
-                boxShadow: '0 4px 24px rgba(0,0,0,0.25)',
+                border: '1px solid rgba(255,255,255,0.03)',
+                boxShadow: '0 4px 24px rgba(0,0,0,0.1)',
             }}>
                 <div aria-hidden="true" style={{
                     position: 'absolute', inset: 0, pointerEvents: 'none',
                     background: `
-                        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(201,147,58,0.14) 0%, transparent 60%),
-                        radial-gradient(ellipse 60% 40% at 100% 100%, rgba(122,158,138,0.07) 0%, transparent 50%)
+                        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(163,177,138,0.05) 0%, transparent 60%),
+                        radial-gradient(ellipse 60% 40% at 100% 100%, rgba(148,163,184,0.03) 0%, transparent 50%)
                     `,
                 }} />
 
                 {/* Brand */}
                 <div style={{
                     padding: '20px 20px 16px',
-                    borderBottom: '1px solid rgba(255,255,255,0.08)',
+                    borderBottom: '1px solid rgba(255,255,255,0.05)',
                     position: 'relative', zIndex: 1, flexShrink: 0,
                 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
                         <div style={{
                             width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
-                            border: '1.5px solid rgba(201,147,58,0.45)',
+                            border: '1px solid rgba(163,177,138,0.3)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                         }}>
                             <motion.div
-                                animate={{ scale: [1, 1.06, 1], opacity: [0.85, 1, 0.85] }}
-                                transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                                animate={{ scale: [1, 1.06, 1], opacity: [0.6, 0.8, 0.6] }}
+                                transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
                                 style={{
                                     width: 18, height: 18, borderRadius: '50%',
-                                    background: `linear-gradient(135deg, ${C.gold} 0%, ${C.goldLight} 100%)`,
+                                    background: `linear-gradient(135deg, #a3b18a 0%, #94a3b8 100%)`,
                                 }}
                             />
                         </div>
                         <div>
                             <div style={{
-                                fontFamily: "'Cormorant Garamond', serif",
-                                fontSize: 18, fontWeight: 500,
-                                color: C.cream, letterSpacing: '0.05em',
-                            }}>V.A.N.I.N.I.</div>
+                                fontFamily: "'Inter', sans-serif",
+                                fontSize: 16, fontWeight: 700,
+                                color: 'rgba(255,255,255,0.85)', letterSpacing: '0.01em',
+                            }}>VANI</div>
                             <div style={{
-                                fontSize: 8, color: 'rgba(250,247,242,0.28)',
+                                fontSize: 8, color: 'rgba(255,255,255,0.2)',
                                 letterSpacing: '0.22em', textTransform: 'uppercase', marginTop: 1,
-                            }}>Neural Interface v2.1</div>
+                            }}>Interface v3.0</div>
                         </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
