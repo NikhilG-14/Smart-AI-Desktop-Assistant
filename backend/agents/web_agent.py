@@ -22,7 +22,7 @@ class WebAgent(BaseAgent):
         logger.info(f"[WebAgent] intent={intent} slots={slots}")
 
         if intent == "search_web":
-            query = slots.get("query", slots.get("search_term", "")).strip()
+            query = (slots.get("query") or slots.get("search_term") or "").strip()
             if not query:
                 return "What would you like to search for?"
             url = f"https://www.google.com/search?q={urllib.parse.quote(query)}"
@@ -30,7 +30,7 @@ class WebAgent(BaseAgent):
             return f"Searching the web for: {query}"
 
         elif intent == "open_website":
-            url = slots.get("url", slots.get("website", "")).strip()
+            url = (slots.get("url") or slots.get("website") or "").strip()
             if not url:
                 return "Which website would you like to open?"
             if not url.startswith(("http://", "https://")):

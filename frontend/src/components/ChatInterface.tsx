@@ -181,12 +181,37 @@ export function ChatInterface() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ message: text }),
             });
-            const data = await res.json();
-            if (data.ignored) { setMessages(p => p.filter(m => m.id !== uid)); setIsThinking(false); return; }
-            const botText = data.response || 'No response received.';
-            setMessages(p => [...p, { id: Date.now().toString(), type: 'bot', text: botText, timestamp: new Date() }]);
-            speakMessage(botText);
-        } catch {
+
+            if (!res.ok) throw new Error('Network response was not ok');
+
+            // The backend returns a text/plain stream
+            const reader = res.body?.getReader();
+            const decoder = new TextDecoder();
+            let botText = '';
+            
+            // Create an empty bot message that we'll update in real-time
+            const botMsgId = Date.now().toString();
+            setMessages(p => [...p, { id: botMsgId, type: 'bot', text: '', timestamp: new Date() }]);
+
+            while (reader) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                
+                const chunk = decoder.decode(value, { stream: true });
+                botText += chunk;
+                
+                // Update the last message with the new chunk
+                setMessages(p => p.map(m => m.id === botMsgId ? { ...m, text: botText } : m));
+            }
+
+            if (botText) speakMessage(botText);
+            else {
+                // If we got nothing, maybe it was ignored (wake-word missing)
+                setMessages(p => p.filter(m => m.id !== botMsgId && m.id !== uid));
+            }
+
+        } catch (error) {
+            console.error('Chat error:', error);
             setMessages(p => [...p, {
                 id: Date.now().toString(), type: 'bot',
                 text: 'Connection to V.A.N.I.N.I. backend failed. Please check the server.',

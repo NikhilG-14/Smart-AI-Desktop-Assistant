@@ -2,7 +2,7 @@ import json
 import logging
 from typing import Optional, Dict, Any
 
-from backend.llm_client import _call_ollama, ROUTING_MODEL
+from backend.llm_client import _call_ollama, ROUTING_MODEL, FALLBACK_MODEL
 
 logger = logging.getLogger(__name__)
 
@@ -76,16 +76,32 @@ class DecisionEngine:
         )
 
         try:
+            # Step 1: Call primary routing model (e.g., vani-model)
             raw = _call_ollama(prompt, _SYSTEM_PROMPT, self.model)
-            logger.debug(f"[DecisionEngine] Raw LLM output: {raw}")
+            logger.debug(f"[DecisionEngine] Primary Raw output: {raw}")
             decision = self._parse(raw)
-            logger.info(
-                f"[DecisionEngine] agent={decision.get('agent')} "
-                f"intent={decision.get('intent')} slots={decision.get('slots')}"
-            )
+            
+            # Step 2: Evaluate if we should "scope out" to the more powerful fallback model
+            # Cases for fallback: 
+            # - Defaulted to general_query with low confidence
+            # - Model explicitly asked for clarification
+            # - Confidence is explicitly set very low
+            confidence = decision.get("confidence") or 0
+            is_generic = (decision.get("agent") == "data" and decision.get("intent") == "general_query")
+            
+            if (is_generic and confidence < 0.6) or decision.get("needs_clarification"):
+                logger.info(f"[DecisionEngine] Decision scoped out ({self.model}). Consulting fallback model ({FALLBACK_MODEL})...")
+                fallback_raw = _call_ollama(prompt, _SYSTEM_PROMPT, FALLBACK_MODEL)
+                decision = self._parse(fallback_raw)
+                logger.info(f"[DecisionEngine] Fallback decision: agent={decision.get('agent')} intent={decision.get('intent')}")
+            else:
+                logger.info(
+                    f"[DecisionEngine] agent={decision.get('agent')} "
+                    f"intent={decision.get('intent')} slots={decision.get('slots')}"
+                )
             return decision
         except Exception as e:
-            logger.error(f"[DecisionEngine] Ollama error: {e}")
+            logger.error(f"[DecisionEngine] Routing error: {e}")
             return self._fallback(user_input)
 
     # ── helpers ────────────────────────────────────────────────────────

@@ -39,6 +39,8 @@ _MAC_APP_NAMES = {
     "finder":   "Finder",
     "slack":    "Slack",
     "zoom":     "Zoom",
+    "brave":    "Brave Browser",
+    "vs code":  "Visual Studio Code",
 }
 
 
