@@ -65,41 +65,41 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
     <aside
       className="shrink-0 w-[220px] h-full flex flex-col"
       style={{
-        background: 'linear-gradient(180deg, rgba(10,14,23,0.98) 0%, rgba(8,11,18,0.98) 100%)',
-        borderRight: '1px solid rgba(255,255,255,0.05)',
+        background: '#1a1d23',
+        borderRight: '1px solid rgba(255,255,255,0.03)',
       }}
     >
       {/* ── Logo ──────────────────────────────────────────────────────── */}
-      <div className="shrink-0 flex items-center gap-3 px-5 py-5 border-b border-white/5">
+      <div className="shrink-0 flex items-center gap-3 px-5 py-5 border-b border-white/05">
         {/* Animated orb */}
         <div className="relative w-8 h-8 shrink-0">
-          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-cyan-400 to-purple-500 opacity-80 animate-pulse-ring" />
-          <div className="absolute inset-[3px] rounded-full bg-[#080b12]" />
-          <div className="absolute inset-[6px] rounded-full bg-gradient-to-br from-cyan-400 to-purple-500" />
+          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[#a3b18a] to-[#94a3b8] opacity-60 animate-pulse-ring" />
+          <div className="absolute inset-[3px] rounded-full bg-[#1a1d23]" />
+          <div className="absolute inset-[6px] rounded-full bg-gradient-to-br from-[#a3b18a] to-[#94a3b8]" />
         </div>
         <div>
           <p
             className="text-[13px] font-bold tracking-tight"
             style={{
               fontFamily: "'Space Mono', monospace",
-              background: 'linear-gradient(135deg, #67e8f9, #a78bfa)',
+              background: 'linear-gradient(135deg, #a3b18a, #94a3b8)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
             }}
           >
-            V.A.N.I.N.I
+            V.A.N.I
           </p>
-          <p className="text-[10px] text-white/30 tracking-widest uppercase" style={{ fontFamily: "'Space Mono', monospace" }}>
-            Desktop
+          <p className="text-[10px] text-white/20 tracking-widest uppercase" style={{ fontFamily: "'Space Mono', monospace" }}>
+            Assistant
           </p>
         </div>
       </div>
 
       {/* ── Nav ───────────────────────────────────────────────────────── */}
       <nav className="flex-1 flex flex-col gap-1 px-3 py-4 overflow-y-auto">
-        <p className="px-3 mb-2 text-[10px] font-semibold tracking-widest uppercase text-white/20"
-           style={{ fontFamily: "'Space Mono', monospace" }}>
+        <p className="px-3 mb-2 text-[10px] font-semibold tracking-widest uppercase text-white/10"
+           style={{ fontFamily: "'Inter', sans-serif" }}>
           Navigation
         </p>
 
@@ -108,6 +108,7 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
             key={id}
             onClick={() => setActiveTab(id)}
             className={`nav-item w-full text-left ${activeTab === id ? 'active' : ''}`}
+            style={{ fontFamily: "'Inter', sans-serif" }}
           >
             <span className="shrink-0"><Icon /></span>
             <span>{label}</span>
@@ -116,17 +117,17 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
       </nav>
 
       {/* ── Footer / Status ───────────────────────────────────────────── */}
-      <div className="shrink-0 px-4 py-4 border-t border-white/5">
+      <div className="shrink-0 px-4 py-4 border-t border-white/05">
         {/* AI Status */}
-        <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-10 glass rounded-xl">
+        <div className="flex items-center gap-2.5 px-3 py-2.5 glass rounded-xl">
           <div className="relative w-2 h-2 shrink-0">
-            <div className="absolute inset-0 rounded-full bg-emerald-400 animate-pulse" />
-            <div className="w-2 h-2 rounded-full bg-emerald-400" />
+            <div className="absolute inset-0 rounded-full bg-[#a3b18a] opacity-40 animate-pulse" />
+            <div className="w-2 h-2 rounded-full bg-[#a3b18a]" />
           </div>
           <div className="min-w-0">
-            <p className="text-[11px] font-medium text-white/70 truncate">AI Model Active</p>
-            <p className="text-[10px] text-white/30 truncate" style={{ fontFamily: "'Space Mono', monospace" }}>
-              claude-3-opus
+            <p className="text-[11px] font-medium text-white/50 truncate">Vani Active</p>
+            <p className="text-[10px] text-white/20 truncate" style={{ fontFamily: "'Space Mono', monospace" }}>
+              vani-model
             </p>
           </div>
         </div>

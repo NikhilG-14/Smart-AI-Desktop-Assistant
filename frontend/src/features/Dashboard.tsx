@@ -59,29 +59,49 @@ function ActivityItem({ icon, text, time, type }: { icon: string; text: string; 
 
 export function Dashboard() {
   const [time, setTime] = useState(new Date());
+  const [stats, setStats] = useState({ timers: 0, reminders: 0, messages: 0 });
+  const [activity, setActivity] = useState<any[]>([]);
 
   useEffect(() => {
     const t = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
 
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const tRes = await fetch('http://127.0.0.1:8000/timers/active');
+        const timers = await tRes.json();
+        
+        const rRes = await fetch('http://127.0.0.1:8000/reminders');
+        const reminders = await rRes.json();
+        
+        const mRes = await fetch('http://127.0.0.1:8000/memory/recent');
+        const memory = await mRes.json();
+        
+        setStats({
+          timers: timers.length,
+          reminders: reminders.length,
+          messages: memory.filter((m: any) => m.role === 'user').length
+        });
+        
+        setActivity(memory.slice(-5).reverse().map((m: any) => ({
+          icon: m.role === 'user' ? '💬' : '🤖',
+          text: m.text,
+          time: 'recently',
+          type: m.role === 'user' ? 'info' : 'success'
+        })));
+      } catch (e) {}
+    };
+    fetchData();
+    const id = setInterval(fetchData, 10000);
+    return () => clearInterval(id);
+  }, []);
+
   const timeStr = time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   const dateStr = time.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
 
-  const activities = [
-    { icon: '🤖', text: 'AI model loaded successfully', time: 'now',    type: 'success' as const },
-    { icon: '⏱', text: 'Pomodoro timer completed — great focus session!', time: '12m',  type: 'info' as const },
-    { icon: '🔔', text: 'Reminder: Team standup in 30 minutes',          time: '18m',  type: 'warning' as const },
-    { icon: '💾', text: 'Auto-save completed — all data backed up',      time: '1h',   type: 'success' as const },
-    { icon: '📊', text: 'CPU usage spiked to 89% — peak resolved',       time: '2h',   type: 'warning' as const },
-  ];
-
   return (
-    /**
-     * Same pattern as all features:
-     * flex-1 min-w-0 min-h-0 → fills space, allows shrinking
-     * overflow-y-auto → this panel can scroll if content overflows
-     */
     <div className="flex-1 min-w-0 min-h-0 overflow-y-auto">
       <div className="flex flex-col gap-5 p-6">
 
@@ -89,14 +109,13 @@ export function Dashboard() {
         <div
           className="relative overflow-hidden rounded-2xl p-6"
           style={{
-            background: 'linear-gradient(135deg, rgba(103,232,249,0.07) 0%, rgba(167,139,250,0.07) 100%)',
-            border: '1px solid rgba(255,255,255,0.07)',
+            background: 'linear-gradient(135deg, rgba(163,177,138,0.05) 0%, rgba(148,163,184,0.05) 100%)',
+            border: '1px solid rgba(255,255,255,0.05)',
           }}
         >
-          {/* bg accent */}
-          <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-cyan-500/10 blur-2xl pointer-events-none" />
+          <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-slate-500/05 blur-2xl pointer-events-none" />
 
-          <p className="text-[11px] text-white/30 uppercase tracking-widest mb-1"
+          <p className="text-[11px] text-white/20 uppercase tracking-widest mb-1"
              style={{ fontFamily: "'Space Mono', monospace" }}>
             {dateStr}
           </p>
@@ -104,7 +123,7 @@ export function Dashboard() {
             className="text-4xl font-bold tracking-tight"
             style={{
               fontFamily: "'Space Mono', monospace",
-              background: 'linear-gradient(135deg, #67e8f9, #a78bfa)',
+              background: 'linear-gradient(135deg, #a3b18a, #94a3b8)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
@@ -114,16 +133,16 @@ export function Dashboard() {
           </p>
 
           <div className="flex items-center gap-2 mt-3">
-            <span className="badge badge-green">System Online</span>
-            <span className="badge badge-cyan">AI Ready</span>
+            <span className="badge badge-green">Vani Online</span>
+            <span className="badge badge-cyan">Zen Mode</span>
           </div>
         </div>
 
         {/* ── Quick Stats ──────────────────────────────────────────────── */}
         <div className="flex gap-3">
-          <QuickStat label="Active Timers"    value="2"     sub="Pomodoro running"    accent="#67e8f9" />
-          <QuickStat label="Reminders Today"  value="4"     sub="1 upcoming soon"     accent="#a78bfa" />
-          <QuickStat label="Chat Messages"    value="127"   sub="This session"        accent="#34d399" />
+          <QuickStat label="Active Timers"    value={stats.timers.toString()}     sub="Running in background"    accent="#a3b18a" />
+          <QuickStat label="Pending Tasks"   value={stats.reminders.toString()}  sub="Reminders scheduled"      accent="#94a3b8" />
+          <QuickStat label="Total Queries"   value={stats.messages.toString()}   sub="In this session"           accent="#84a59d" />
         </div>
 
         {/* ── Bottom Row ───────────────────────────────────────────────── */}
@@ -143,9 +162,13 @@ export function Dashboard() {
               Recent Activity
             </h3>
             <div className="flex-1 min-h-0 overflow-y-auto">
-              {activities.map((a, i) => (
-                <ActivityItem key={i} {...a} />
-              ))}
+              {activity.length === 0 ? (
+                <p className="text-xs text-white/20 text-center py-10">No recent activity</p>
+              ) : (
+                activity.map((a, i) => (
+                  <ActivityItem key={i} {...a} />
+                ))
+              )}
             </div>
           </div>
         </div>

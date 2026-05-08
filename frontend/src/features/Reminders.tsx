@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -17,9 +17,9 @@ interface Reminder {
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 const PRIORITY_CONFIG: Record<Priority, { label: string; color: string; badge: string }> = {
-  low:    { label: 'Low',    color: '#34d399', badge: 'badge-green'  },
-  medium: { label: 'Medium', color: '#f59e0b', badge: 'badge-cyan'   },
-  high:   { label: 'High',   color: '#f87171', badge: 'badge-red'    },
+  low:    { label: 'Low',    color: '#a3b18a', badge: 'badge-green'  },
+  medium: { label: 'Medium', color: '#94a3b8', badge: 'badge-cyan'   },
+  high:   { label: 'High',   color: '#e07a5f', badge: 'badge-red'    },
 };
 
 // ─── Reminder Card ────────────────────────────────────────────────────────────
@@ -108,66 +108,78 @@ function ReminderCard({
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-const SAMPLE_REMINDERS: Reminder[] = [
-  {
-    id: '1',
-    text: 'Team standup meeting',
-    datetime: new Date(Date.now() + 30 * 60000).toISOString().slice(0, 16),
-    priority: 'high',
-    status: 'pending',
-    createdAt: new Date(),
-  },
-  {
-    id: '2',
-    text: 'Review PR #42 — auth refactor',
-    datetime: new Date(Date.now() + 2 * 3600000).toISOString().slice(0, 16),
-    priority: 'medium',
-    status: 'pending',
-    createdAt: new Date(),
-  },
-  {
-    id: '3',
-    text: 'Take a 10-minute break and stretch',
-    datetime: '',
-    priority: 'low',
-    status: 'done',
-    createdAt: new Date(),
-  },
-];
-
 export default function Reminders() {
-  const [reminders, setReminders] = useState<Reminder[]>(SAMPLE_REMINDERS);
+  const [reminders, setReminders] = useState<Reminder[]>([]);
   const [newText,   setNewText]   = useState('');
   const [newDate,   setNewDate]   = useState('');
   const [newPriority, setNewPriority] = useState<Priority>('medium');
   const [filter, setFilter] = useState<'all' | 'pending' | 'done'>('all');
 
-  const add = useCallback(() => {
+  const fetchReminders = useCallback(async () => {
+    try {
+      const res = await fetch('http://127.0.0.1:8000/reminders');
+      const data = await res.json();
+      setReminders(data.map((r: any) => ({
+        id: r.id.toString(),
+        text: r.message,
+        datetime: r.due_time || '',
+        priority: 'medium', 
+        status: r.is_completed ? 'done' : 'pending',
+        createdAt: new Date(r.created_at)
+      })));
+    } catch (e) { console.error("Fetch reminders failed", e); }
+  }, []);
+
+  useEffect(() => {
+    fetchReminders();
+    const id = setInterval(fetchReminders, 10000);
+    return () => clearInterval(id);
+  }, [fetchReminders]);
+
+  const add = useCallback(async () => {
     if (!newText.trim()) return;
-    setReminders(prev => [{
-      id: crypto.randomUUID(),
-      text: newText.trim(),
-      datetime: newDate,
-      priority: newPriority,
-      status: 'pending',
-      createdAt: new Date(),
-    }, ...prev]);
-    setNewText('');
-    setNewDate('');
-    setNewPriority('medium');
-  }, [newText, newDate, newPriority]);
+    try {
+      await fetch('http://127.0.0.1:8000/reminders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: newText.trim(),
+          due_time: newDate || new Date(Date.now() + 5 * 60000).toISOString()
+        })
+      });
+      setNewText('');
+      setNewDate('');
+      setNewPriority('medium');
+      fetchReminders();
+    } catch (e) { console.error("Add failed", e); }
+  }, [newText, newDate, fetchReminders]);
 
-  const toggle = useCallback((id: string) => {
-    setReminders(prev => prev.map(r =>
-      r.id !== id ? r : { ...r, status: r.status === 'done' ? 'pending' : 'done' }
-    ));
-  }, []);
+  const toggle = useCallback(async (id: string) => {
+    const r = reminders.find(item => item.id === id);
+    if (!r) return;
+    try {
+      await fetch(`http://127.0.0.1:8000/reminders/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_completed: r.status !== 'done' })
+      });
+      fetchReminders();
+    } catch (e) { console.error("Toggle failed", e); }
+  }, [reminders, fetchReminders]);
 
-  const remove = useCallback((id: string) => {
-    setReminders(prev => prev.filter(r => r.id !== id));
-  }, []);
+  const remove = useCallback(async (id: string) => {
+    try {
+      await fetch(`http://127.0.0.1:8000/reminders/${id}`, { method: 'DELETE' });
+      fetchReminders();
+    } catch (e) { console.error("Delete failed", e); }
+  }, [fetchReminders]);
 
-  const clearDone = () => setReminders(prev => prev.filter(r => r.status !== 'done'));
+  const clearDone = async () => {
+    const doneOnes = reminders.filter(r => r.status === 'done');
+    for (const r of doneOnes) {
+      await remove(r.id);
+    }
+  };
 
   const filtered = reminders.filter(r => filter === 'all' || r.status === filter);
   const pendingCount = reminders.filter(r => r.status === 'pending').length;
